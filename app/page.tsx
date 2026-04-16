@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { useClerk } from '@clerk/nextjs'
 import { experimental_useObject as useObject } from '@ai-sdk/react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   Square, Target, BookOpen, Radio,
   MessageSquare, BarChart3, Link2, Brain, Check, RotateCcw,
-  Zap, ArrowRight, Sparkles, Loader2, Plus, Send
+  Zap, ArrowRight, Sparkles, Loader2, Plus, Send, LogOut
 } from 'lucide-react'
 import { TrustScoreBadge } from '@/components/research/TrustScoreBadge'
 import { ResearchLoadingScreen } from '@/components/research/ResearchLoadingScreen'
@@ -41,11 +42,24 @@ const MODE_CONFIG: Record<QueryMode, {
 // ─── Outer shell — holds the reset key ────────────────────────────────────────
 export default function Page() {
   const [sessionId, setSessionId] = useState(0)
-  return <ResearchApp key={sessionId} onNewChat={() => setSessionId(n => n + 1)} />
+  const { signOut } = useClerk()
+
+  // Sign out automatically when the browser is closed and reopened.
+  // sessionStorage is wiped on browser close (unlike localStorage), so if the
+  // key is absent we know this is a fresh browser open with a stale Clerk cookie.
+  useEffect(() => {
+    const hasSession = sessionStorage.getItem('deepinsight-session')
+    if (!hasSession) {
+      signOut({ redirectUrl: '/sign-in' })
+      return
+    }
+  }, [signOut])
+
+  return <ResearchApp key={sessionId} onNewChat={() => setSessionId(n => n + 1)} onSignOut={() => signOut({ redirectUrl: '/sign-in' })} />
 }
 
 // ─── Inner app — full remount on new chat ─────────────────────────────────────
-function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
+function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOut: () => void }) {
   const [prompt, setPrompt] = useState('')
   const [appState, setAppState] = useState<AppState>('idle')
   const [detectedMode, setDetectedMode] = useState<QueryMode | null>(null)
@@ -340,7 +354,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
             </div>
           </div>
 
-          {/* Right: status pills */}
+          {/* Right: status pills + sign out */}
           <div className="flex items-center gap-2.5">
             <AnimatePresence>
               {(isResearching || appState === 'done') && detectedMode && (
@@ -365,6 +379,15 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
               )}
             </AnimatePresence>
             {trustScore && <TrustScoreBadge score={trustScore} />}
+            <div className="w-px h-4 bg-white/10 mx-0.5" />
+            <button
+              onClick={onSignOut}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-slate-400 hover:text-slate-200 hover:bg-white/[0.06] transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span className="text-[11px] font-mono tracking-wide">Sign out</span>
+            </button>
           </div>
         </div>
       </header>

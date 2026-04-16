@@ -1,9 +1,15 @@
 'use client'
 
+import { useEffect } from 'react'
 import { SignIn } from '@clerk/nextjs'
 import { Brain } from 'lucide-react'
 
 export default function SignInPage() {
+  // Mark the session as active so the main page doesn't auto-sign-out
+  // after Clerk redirects back here following a successful sign-in.
+  useEffect(() => {
+    sessionStorage.setItem('deepinsight-session', '1')
+  }, [])
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center gap-8"
