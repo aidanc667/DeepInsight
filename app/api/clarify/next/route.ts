@@ -9,27 +9,44 @@ interface HistoryEntry {
   answer: string
 }
 
-function buildSystem(prompt: string, historyLength: number): string {
+function getHardCap(mode: string): number {
+  if (mode === 'decision' || mode === 'action') return 5
+  if (mode === 'explainer') return 2
+  return 3
+}
+
+function buildSystem(prompt: string, historyLength: number, mode: string): string {
   const { title, description } = getExpertPersona(prompt)
+  const hardCap = getHardCap(mode)
+
+  const modeStopConditions: Record<string, string> = {
+    decision:     'You know the specific options being compared AND at least one key constraint (budget, must-haves)',
+    action:       'You know their starting point AND available resources or timeline',
+    explainer:    'You know their background level — that alone shapes the entire explanation',
+    perspectives: 'The debate topic and their stakes are clear',
+    intelligence: 'The angle and use case are clear',
+    competitive:  'The specific claim being challenged is clear',
+    research:     'You know their objective AND at least one key constraint or context factor',
+  }
+
+  const stopCondition = modeStopConditions[mode] ?? modeStopConditions.research
 
   return `${description}
 
 A user came to you — a ${title} — with this request. Decide: do you need one more question, or do you have enough to produce a highly useful, personalized answer?
 
-Bias toward stopping. Only ask if the missing information would meaningfully change the research direction or output.
+Bias strongly toward stopping. Only ask if the missing information would materially change the output.
 
 ${historyLength === 0
-  ? 'This is the first follow-up question — identify the single highest-impact unknown.'
-  : `You have ${historyLength} answer(s) already. Stop unless there is a critical gap that would materially change the output.`
+    ? 'This is the first follow-up question — identify the single highest-impact unknown.'
+    : `You have ${historyLength} answer(s) already. Stop unless there is a critical gap that would materially change the output.`
 }
 
-Priority dimensions (ask only from these, in order):
-1. OBJECTIVE — What are they ultimately trying to achieve?
-2. CONTEXT — What is their current situation or starting point?
-3. CONSTRAINTS — Budget, timeline, or hard limits?
-4. TIME HORIZON — When does this need to happen?
-5. SUCCESS CRITERIA — How will they know the answer worked?
-6. RISK TOLERANCE — Conservative or aggressive approach?
+STOP immediately (done: true) when ANY of these are true:
+- ${stopCondition}
+- ${hardCap}+ answers collected — never ask more than ${hardCap} total
+- The query is purely factual or educational
+- The remaining unknowns would not meaningfully change the research direction
 
 Output ONLY valid JSON — one of two formats:
 
@@ -47,16 +64,9 @@ FORMAT A — ask a question:
 FORMAT B — you have enough context:
 { "done": true, "reason": "One sentence why you have enough to proceed" }
 
-STOP (done: true) when ANY of these are true:
-- You know the user's objective AND at least one key constraint or context factor — 2 good answers often suffice
-- 3+ answers collected — rarely need more than this
-- The query is purely factual or educational — stop immediately
-- The remaining unknowns would not meaningfully change the research direction
-
 OPTIONS rules:
-- Concrete and specific with real numbers: "Under $20k", "$20–35k", "$35–50k", "$50–75k", "$75k+"
-- Span the complete realistic range: entry-level → mid-range → premium → top-tier
-- 4–5 options per question (5 for budget/price ranges)
+- Concrete and specific with real numbers and domain-realistic ranges
+- 4–5 options per question
 - Do NOT include "Other", "It depends", "Flexible", or generic catch-alls
 
 NEVER ask about:
@@ -67,12 +77,22 @@ NEVER ask about:
 
 export async function POST(req: Request) {
   try {
-    const { prompt: rawPrompt, history = [] } = await req.json() as { prompt: string; history: HistoryEntry[] }
+    const { prompt: rawPrompt, history = [], mode = 'research' } = await req.json() as {
+      prompt: string
+      history: HistoryEntry[]
+      mode?: string
+    }
 
     if (!rawPrompt?.trim()) {
       return Response.json({ done: true, reason: 'No prompt' })
     }
     const prompt = rawPrompt.trim().slice(0, 2000).replace(/[\x00-\x1F\x7F]/g, '')
+
+    // Enforce hard cap — stop immediately if already at limit
+    const hardCap = getHardCap(mode)
+    if (history.length >= hardCap) {
+      return Response.json({ done: true, reason: 'Question limit reached' })
+    }
 
     const historyBlock = history.length > 0
       ? `\nAnswers so far:\n${history.map((h, i) => `${i + 1}. ${h.question} → ${h.answer}`).join('\n')}`
@@ -80,7 +100,7 @@ export async function POST(req: Request) {
 
     const result = await generateText({
       model: anthropic('claude-haiku-4-5'),
-      system: buildSystem(prompt, history.length),
+      system: buildSystem(prompt, history.length, mode),
       prompt: `User's request: "${prompt}"${historyBlock}\n\nWhat is the single most important question to ask next, or do you have enough context?`,
       maxOutputTokens: 250,
     })

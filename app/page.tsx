@@ -179,14 +179,14 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
             }),
         fetch('/api/clarify/plan', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt }),
+          body: JSON.stringify({ prompt, mode: selectedAgent ?? undefined }),
         }),
       ])
 
       const classifyResult = classifyRes ? await classifyRes.json() : null
       const plan           = await planRes.json() as QuestionPlan & { error?: boolean }
 
-      const classifiedMode = classifyResult?.mode as QueryMode | undefined
+      const classifiedMode = (classifyResult?.mode ?? selectedAgent) as QueryMode | undefined
       if (classifiedMode) setDetectedMode(classifiedMode)
 
       if (plan.questions && plan.questions.length > 0) {
@@ -199,7 +199,7 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
         // Fall back to single-question mode via clarify/next.
         const nextRes = await fetch('/api/clarify/next', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, history: [] }),
+          body: JSON.stringify({ prompt, history: [], mode: classifiedMode }),
         })
         const next = await nextRes.json()
         if (!next.done && next.question) {
@@ -235,8 +235,10 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
     }
 
     // All planned questions answered — ask the expert if it needs anything else.
-    // Hard cap: 10 total answers max, then go straight to research.
-    if (newHistory.length >= 10) {
+    // Hard cap is mode-aware: 5 for decision/action, 2 for explainer, 3 otherwise.
+    const modeCap = (detectedMode === 'decision' || detectedMode === 'action') ? 5
+      : detectedMode === 'explainer' ? 2 : 3
+    if (newHistory.length >= modeCap) {
       const ctx = newHistory.map(e => `${e.question.question}: ${e.answer}`).join('\n')
       startResearch(ctx)
       return
@@ -249,6 +251,7 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
         body:   JSON.stringify({
           prompt,
           history: newHistory.map(e => ({ question: e.question.question, answer: e.answer })),
+          mode: detectedMode ?? undefined,
         }),
       })
       const next = await res.json()
