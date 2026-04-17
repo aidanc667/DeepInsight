@@ -256,12 +256,24 @@ export interface SourceSnippet {
   snippet: string
 }
 
+// Block fetches to private/loopback/link-local ranges to prevent SSRF
+function isSafeUrl(url: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(url)
+    if (protocol !== 'https:' && protocol !== 'http:') return false
+    if (/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|::1$|fc00:|fe80:)/i.test(hostname)) return false
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function extractSourceSnippets(
   citations: Array<{ url: string; domain: string }>,
   totalBudgetMs = 4500,
 ): Promise<SourceSnippet[]> {
   const candidates = [...citations]
-    .filter(c => !SKIP_FETCH_DOMAINS.has(c.domain) && c.url.startsWith('http'))
+    .filter(c => !SKIP_FETCH_DOMAINS.has(c.domain) && isSafeUrl(c.url))
     .sort((a, b) => getSourceQuality(b.domain).credibilityScore - getSourceQuality(a.domain).credibilityScore)
     .slice(0, 4)
 
@@ -280,7 +292,7 @@ export async function extractSourceSnippets(
         const res = await fetch(url, {
           signal: controller.signal,
           headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+            'User-Agent': 'DeepInsightBot/1.0 (+https://deepinsight-agent.vercel.app)',
             'Accept': 'text/html,application/xhtml+xml',
             'Accept-Language': 'en-US,en;q=0.9',
           },

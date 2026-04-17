@@ -10,8 +10,9 @@ const PURELY_FACTUAL = /^(what is |what are |who is |who are |when did |when was
 
 export async function POST(req: Request) {
   try {
-    const { prompt } = await req.json() as { prompt: string }
-    if (!prompt?.trim()) return Response.json({ expertTitle: '', questions: [] })
+    const { prompt: rawPrompt } = await req.json() as { prompt: string }
+    if (!rawPrompt?.trim()) return Response.json({ expertTitle: '', questions: [] })
+    const prompt = rawPrompt.trim().slice(0, 2000).replace(/[\x00-\x1F\x7F]/g, '')
 
     // Fast path — pure factual lookup needs no clarification
     if (PURELY_FACTUAL.test(prompt.trim())) {

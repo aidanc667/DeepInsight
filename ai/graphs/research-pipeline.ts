@@ -137,7 +137,11 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
     ? geminiResult.value.citations
     : []
 
-  if (!claudeText && !geminiText) {
+  // Only fail if at least one model was actually called and both returned nothing.
+  // explainer + perspectives intentionally skip both pre-passes and rely solely
+  // on the synthesizer — so empty claudeText + geminiText is expected for them.
+  const eitherAttempted = CLAUDE_REASONING_MODES.has(mode) || GEMINI_SEARCH_MODES.has(mode)
+  if (eitherAttempted && !claudeText && !geminiText) {
     return Response.json(
       { error: 'All model calls failed. Please check your API keys and try again.' },
       { status: 503 },

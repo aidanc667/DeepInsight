@@ -4,8 +4,9 @@
     {
       "name": "elite-research-agent",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "-p", "3333"],
-      "port": 3333
+      "runtimeArgs": ["run", "dev"],
+      "port": 3333,
+      "autoPort": true
     }
   ]
 }

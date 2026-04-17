@@ -67,11 +67,12 @@ NEVER ask about:
 
 export async function POST(req: Request) {
   try {
-    const { prompt, history = [] } = await req.json() as { prompt: string; history: HistoryEntry[] }
+    const { prompt: rawPrompt, history = [] } = await req.json() as { prompt: string; history: HistoryEntry[] }
 
-    if (!prompt?.trim()) {
+    if (!rawPrompt?.trim()) {
       return Response.json({ done: true, reason: 'No prompt' })
     }
+    const prompt = rawPrompt.trim().slice(0, 2000).replace(/[\x00-\x1F\x7F]/g, '')
 
     const historyBlock = history.length > 0
       ? `\nAnswers so far:\n${history.map((h, i) => `${i + 1}. ${h.question} → ${h.answer}`).join('\n')}`
