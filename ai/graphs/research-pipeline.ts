@@ -64,12 +64,13 @@ export interface ResearchPipelineInput {
   forceProceed?: boolean
   mode?: string               // client-side mode hint (overrides classifier if valid)
   priorSessions?: ResearchSession[]
+  prefetchedGemini?: { rawText: string; citations: import('@/ai/schemas').Citation[] } | null
 }
 
 // ─── Main pipeline ────────────────────────────────────────────────────────────
 
 export async function runResearchPipeline(input: ResearchPipelineInput): Promise<Response> {
-  const { prompt, forceProceed, mode: clientMode, priorSessions } = input
+  const { prompt, forceProceed, mode: clientMode, priorSessions, prefetchedGemini } = input
   const clarificationContext = forceProceed ? undefined : input.clarificationContext
 
   const requestStart = Date.now()
@@ -120,9 +121,17 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
   const emptyClaudeResponse  = { modelId: 'claude' as const, rawText: '', citations: [], latencyMs: 0 }
   const emptyGeminiResponse  = { modelId: 'gemini' as const, rawText: '', citations: [], latencyMs: 0 }
 
+  // If the client pre-fired Gemini during clarification, reuse those results
+  // instead of calling Gemini again — saves 3–8s on the critical path.
+  const prefetchedGeminiResponse = prefetchedGemini
+    ? { modelId: 'gemini' as const, rawText: prefetchedGemini.rawText, citations: prefetchedGemini.citations, latencyMs: 0 }
+    : null
+
   const [claudeResult, geminiResult] = await Promise.allSettled([
     CLAUDE_REASONING_MODES.has(mode) ? callClaude(researchPrompt) : Promise.resolve(emptyClaudeResponse),
-    GEMINI_SEARCH_MODES.has(mode)    ? callGemini(geminiPrompt)    : Promise.resolve(emptyGeminiResponse),
+    GEMINI_SEARCH_MODES.has(mode)
+      ? (prefetchedGeminiResponse ? Promise.resolve(prefetchedGeminiResponse) : callGemini(geminiPrompt))
+      : Promise.resolve(emptyGeminiResponse),
   ])
 
   const claudeText = claudeResult.status === 'fulfilled'

@@ -9,6 +9,7 @@ const isPublicRoute = createRouteMatcher([
 
 const isAiRoute = createRouteMatcher([
   '/api/research(.*)',
+  '/api/presearch(.*)',
   '/api/clarify(.*)',
   '/api/classify(.*)',
 ])

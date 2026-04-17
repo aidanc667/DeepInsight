@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useClerk } from '@clerk/nextjs'
 import { experimental_useObject as useObject } from '@ai-sdk/react'
 import { motion, AnimatePresence } from 'motion/react'
@@ -78,6 +78,9 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
   const [chatHistory, setChatHistory]         = useState<Array<{ prompt: string; result: Partial<EliteResearchOutput> }>>([])
   const [currentPromptLabel, setCurrentPromptLabel] = useState('')
 
+  // Holds the in-flight presearch promise so startResearch can await it
+  const presearchRef = useRef<Promise<{ rawText: string; citations: unknown[] } | null> | null>(null)
+
   // Current question = plan[questionIndex], or null if past the end
   const currentQuestion = questionPlan?.questions[questionIndex] ?? null
 
@@ -120,9 +123,24 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
   const mode       = (object?.queryMode ?? detectedMode ?? 'research') as QueryMode
   const modeConfig = MODE_CONFIG[mode] ?? MODE_CONFIG.research
 
+  // Fire Gemini presearch in the background — called as soon as clarification questions appear.
+  // Result is stored in presearchRef and awaited by startResearch.
+  const firePresearch = useCallback((q: string) => {
+    presearchRef.current = fetch('/api/presearch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: q }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+  }, [])
+
   const startResearch = useCallback(async (context?: string) => {
     setAppState('researching')
     setDeepResearch(false)
+    // Await any in-flight presearch — if user answers quickly it may still be running
+    const prefetchedGemini = presearchRef.current ? await presearchRef.current : null
+    presearchRef.current = null
     const prior = await loadSessions()
     submit({
       prompt,
@@ -130,6 +148,7 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
       forceProceed:         !context,
       mode:                 detectedMode,
       priorSessions:        prior.slice(0, 10),
+      prefetchedGemini,
     })
   }, [prompt, detectedMode, submit])
 
@@ -173,7 +192,8 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
       if (classifiedMode) setDetectedMode(classifiedMode)
 
       if (plan.questions && plan.questions.length > 0) {
-        // Plan returned questions — show them
+        // Plan returned questions — show them and pre-fire Gemini in background
+        firePresearch(prompt)
         setQuestionPlan(plan)
         setAppState('questioning')
       } else if (needsContext(prompt)) {
@@ -185,6 +205,7 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
         })
         const next = await nextRes.json()
         if (!next.done && next.question) {
+          firePresearch(prompt)
           setQuestionPlan({ expertTitle: plan.expertTitle ?? '', questions: [next.question] })
           setAppState('questioning')
         } else {
