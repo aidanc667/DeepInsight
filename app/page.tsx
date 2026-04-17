@@ -167,25 +167,23 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
     setCurrentPromptLabel(prompt)
     // Keep selectedAgent — it stays highlighted through the research run
 
-    // Agent queries: mode is already known, skip classify + clarify round-trips
-    if (selectedAgent) {
-      return startResearch()
-    }
-
     try {
-      // Classify + plan questions in parallel — both are fast Haiku calls
+      // Agent path: mode already known from card — skip classify, only run clarify/plan
+      // Deep research path: classify + plan in parallel
       const [classifyRes, planRes] = await Promise.all([
-        fetch('/api/classify', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt }),
-        }),
+        selectedAgent
+          ? Promise.resolve(null)
+          : fetch('/api/classify', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ prompt }),
+            }),
         fetch('/api/clarify/plan', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ prompt }),
         }),
       ])
 
-      const classifyResult = await classifyRes.json()
+      const classifyResult = classifyRes ? await classifyRes.json() : null
       const plan           = await planRes.json() as QuestionPlan & { error?: boolean }
 
       const classifiedMode = classifyResult?.mode as QueryMode | undefined
