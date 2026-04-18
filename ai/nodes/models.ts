@@ -136,7 +136,7 @@ Evaluate.`,
     })
 
     const text = result.text.trim()
-    const match = text.match(/\{[\s\S]*?\}/)
+    const match = text.match(/\{[\s\S]*\}/)
     if (!match) return { score: 70, shouldIterate: false, gaps: [], reason: 'Parse failed — skipping iteration' }
 
     const parsed = JSON.parse(match[0])
