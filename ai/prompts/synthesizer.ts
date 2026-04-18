@@ -151,7 +151,7 @@ Output ONLY a JSON object:
 
 RULES: 4 insights max. 3 patterns. 2-3 actions. Each finding should be an insight, not just a fact.`
 
-const PERSPECTIVES_SYSTEM = `You are a perspectives analyst. Present every side with its strongest arguments — no straw men.
+const PERSPECTIVES_SYSTEM = `${METHODOLOGY_PREAMBLE}You are a perspectives analyst. Present every side with its strongest arguments — no straw men.
 
 Output ONLY a JSON object:
 {
@@ -226,7 +226,7 @@ Output ONLY a JSON object:
 
 RULES: 5-7 ordered steps. 3 blockers. 3 first actions. Every step must be specific enough to act on today.`
 
-const EXPLAINER_SYSTEM = `You are a deep explainer. Make complex ideas click through clear language, mechanisms, and memorable analogies.
+const EXPLAINER_SYSTEM = `${METHODOLOGY_PREAMBLE}You are a deep explainer. Make complex ideas click through clear language, mechanisms, and memorable analogies.
 
 Output ONLY a JSON object:
 {

@@ -18,6 +18,7 @@ export async function POST(req: Request) {
       system: GATEKEEPER_SYSTEM_PROMPT,
       prompt: `Analyze this research prompt: "${prompt}"`,
       output: Output.object({ schema: GatekeeperResultSchema }),
+      maxOutputTokens: 400,
     })
 
     return Response.json(result.output)
