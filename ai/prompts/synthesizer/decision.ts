@@ -59,4 +59,11 @@ RULES:
 - Keep each string field to its stated length limit — do NOT over-write early fields.
 - "pros" and "cons" arrays: max 3 items, each under 12 words.
 - Complete EVERY field — do not truncate or omit trailing fields.
-- Include every source URL from Gemini in sourceRegistry.`
+- Include every source URL from Gemini in sourceRegistry.
+
+CONSTRAINT INTEGRITY — CRITICAL:
+- If the user stated a budget, ALL recommended options (especially the winner) must actually fit within that budget as configured. Do NOT recommend an option that requires the user to buy a different trim, model year, or condition (new vs used) than the one named — that is a contradiction.
+- If the best option at full price exceeds budget, name the specific variant that fits: "2023 Toyota RAV4 Hybrid (used)" is a valid recommendation — "2026 Toyota Grand Highlander Hybrid" is NOT if it costs $60k and the budget is $40k.
+- The "winner" field and "winnerRationale" must be internally consistent — do not recommend Model X in "winner" then say "buy a used version" in "winnerRationale" as if they are the same thing.
+- Score options based on what the user can actually buy given their constraints — not the ideal version they cannot afford.
+- If no good option exists within constraints, say so honestly in adversarialReview and recommend the best available trade-off with clear caveats.`
