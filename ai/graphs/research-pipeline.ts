@@ -220,7 +220,8 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
     ? anthropic('claude-haiku-4-5')
     : anthropic('claude-sonnet-4-5')
 
-  const maxTokens = mode === 'decision' ? 2400
+  const maxTokens = mode === 'decision' ? 3000
+    : mode === 'forecast' ? 2000
     : agentSelected ? 900
     : mode === 'research' || mode === 'intelligence' || mode === 'explainer' ? 1300
     : 1500
