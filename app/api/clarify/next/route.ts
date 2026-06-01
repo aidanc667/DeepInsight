@@ -3,7 +3,7 @@ import { anthropic } from '@ai-sdk/anthropic'
 import { getExpertPersona } from '@/ai/prompts/expert-personas'
 import { getModeCap, getModeStopCondition } from '@/ai/config/modes'
 
-export const maxDuration = 10
+export const maxDuration = 15
 
 interface HistoryEntry {
   question: string
@@ -17,20 +17,25 @@ function buildSystem(prompt: string, historyLength: number, mode: string): strin
 
   return `${description}
 
-A user came to you — a ${title} — with this request. Decide: do you need one more question, or do you have enough to produce a highly useful, personalized answer?
+A user came to you — a ${title} — with this request. You have collected ${historyLength} answer(s) so far. Decide: is there one more critical piece of context you need, or do you have enough to produce a genuinely personalized, expert-level answer?
 
-Bias strongly toward stopping. Only ask if the missing information would materially change the output.
+WHEN TO ASK ANOTHER QUESTION:
+- You are missing a dimension that would meaningfully change your recommendation
+- The answer would be noticeably more useful with this information
+- You have NOT yet hit the ${hardCap}-question cap
+
+WHEN TO STOP:
+- ${stopCondition}
+- You have reached ${hardCap} answers — never exceed this
+- The remaining unknowns are minor details that wouldn't change the core recommendation
+- The query is purely factual or educational
 
 ${historyLength === 0
-    ? 'This is the first follow-up question — identify the single highest-impact unknown.'
-    : `You have ${historyLength} answer(s) already. Stop unless there is a critical gap that would materially change the output.`
+    ? 'This is the FIRST follow-up. Identify the single most important gap — the one that would most change your expert recommendation.'
+    : historyLength === 1
+    ? 'You have 1 answer. Is there one more critical dimension missing? Only ask if it would materially change the output.'
+    : `You have ${historyLength} answers. Stop unless there is a genuinely critical gap that would significantly change your recommendation.`
 }
-
-STOP immediately (done: true) when ANY of these are true:
-- ${stopCondition}
-- ${hardCap}+ answers collected — never ask more than ${hardCap} total
-- The query is purely factual or educational
-- The remaining unknowns would not meaningfully change the research direction
 
 Output ONLY valid JSON — one of two formats:
 
@@ -38,7 +43,7 @@ FORMAT A — ask a question:
 {
   "done": false,
   "question": {
-    "question": "Specific, expert question?",
+    "question": "Specific, direct expert question?",
     "options": ["Concrete option 1", "Concrete option 2", "Concrete option 3", "Concrete option 4"],
     "fieldTargeted": "unique_snake_case_id",
     "why": "One sentence: how this changes your expert analysis"
@@ -48,15 +53,17 @@ FORMAT A — ask a question:
 FORMAT B — you have enough context:
 { "done": true, "reason": "One sentence why you have enough to proceed" }
 
-OPTIONS rules:
-- Concrete and specific with real numbers and domain-realistic ranges
-- 4–5 options per question
-- Do NOT include "Other", "It depends", "Flexible", or generic catch-alls
+QUESTION QUALITY RULES:
+- Ask like a world-class expert talking to a client — direct, not bureaucratic
+- Never start with "Could you tell me" or "Can you share" — just ask directly
+- The question must address a dimension NOT already covered in answers so far
 
-NEVER ask about:
-- Topics already answered in history
-- Vague things like "how much detail do you want"
-- Anything that wouldn't change the research angle`
+OPTION QUALITY RULES:
+- Specific with real numbers and domain-realistic values — not vague tiers
+- Mutually exclusive — no overlap between options
+- Span the full realistic range — don't cluster in the middle
+- 4 options max. Never include "Other", "It depends", "Flexible", or catch-alls
+- Phrase naturally, like a knowledgeable friend would say it`
 }
 
 export async function POST(req: Request) {
@@ -78,14 +85,14 @@ export async function POST(req: Request) {
     }
 
     const historyBlock = history.length > 0
-      ? `\nAnswers so far:\n${history.map((h, i) => `${i + 1}. ${h.question} → ${h.answer}`).join('\n')}`
+      ? `\nAnswers collected so far:\n${history.map((h, i) => `${i + 1}. Q: ${h.question}\n   A: ${h.answer}`).join('\n')}`
       : ''
 
     const result = await generateText({
       model: anthropic('claude-haiku-4-5'),
       system: buildSystem(prompt, history.length, mode),
-      prompt: `User's request: "${prompt}"${historyBlock}\n\nWhat is the single most important question to ask next, or do you have enough context?`,
-      maxOutputTokens: 250,
+      prompt: `User's request: "${prompt}"${historyBlock}\n\nWhat is the single most important question to ask next to give a better, more personalized answer — or do you have enough context?`,
+      maxOutputTokens: 400,
     })
 
     const text  = result.text.trim()
@@ -103,7 +110,7 @@ export async function POST(req: Request) {
         done: false,
         question: {
           question:      String(parsed.question.question),
-          options:       parsed.question.options.map(String).slice(0, 6),
+          options:       parsed.question.options.map(String).slice(0, 5),
           fieldTargeted: String(parsed.question.fieldTargeted ?? `q_${history.length + 1}`),
           why:           String(parsed.question.why ?? ''),
         },
