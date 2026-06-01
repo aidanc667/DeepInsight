@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Brain, Globe, Layers, Sparkles, FileSearch, Check, Zap } from 'lucide-react'
-import { getPersonaUI } from '@/lib/prompts/expert-personas-ui'
-import type { PersonaUI } from '@/lib/prompts/expert-personas-ui'
+import { getPersonaUI } from '@/ai/prompts/expert-personas-ui'
+import type { PersonaUI } from '@/ai/prompts/expert-personas-ui'
 
 interface Props {
   prompt: string

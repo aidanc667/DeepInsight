@@ -26,10 +26,10 @@ export const GatekeeperResultSchema = z.object({
 })
 
 export const TrustScoreSchema = z.object({
-  agreementScore: z.number(),
-  citationScore: z.number(),
-  recencyScore: z.number(),
-  hallucinationPenalty: z.number(),
+  modelConfidence: z.number(),   // synthesizer's self-assessed certainty 0–100
+  citationScore: z.number(),     // weighted source quality ratio 0–1
+  recencyScore: z.number(),      // recency proxy 0–1
+  coverageScore: z.number(),     // normalized source count 0–100
   finalScore: z.number(),
   alertLevel: z.enum(['green', 'orange', 'red']),
 })
@@ -160,6 +160,7 @@ export const EliteResearchOutputSchema = z.object({
 
   // Analysis — CIPHER
   patterns: z.array(z.string()).optional(),
+
 })
 
 // Alias for API compatibility
@@ -203,9 +204,10 @@ export const ResearchModeSchema = z.object({
 
 export const IntelligenceModeSchema = z.object({
   ...BASE_FIELDS,
-  overview:    z.string(),
-  keyFindings: z.array(ResearchFindingSchema),
-  patterns:    z.array(z.string()),
+  overview:     z.string(),
+  keyFindings:  z.array(ResearchFindingSchema),
+  patterns:     z.array(z.string()),
+  implications: z.string(),
 })
 
 export const PerspectivesModeSchema = z.object({

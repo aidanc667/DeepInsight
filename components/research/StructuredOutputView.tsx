@@ -3,11 +3,11 @@
 import { motion } from 'motion/react'
 import {
   BookOpen, Lightbulb, AlertTriangle, CheckCircle2,
-  ExternalLink, Shield, HelpCircle, Target, Trophy, Zap, X, MessageSquare,
+  ExternalLink, Shield, HelpCircle, Target, Trophy, Zap, X, MessageSquare, TrendingUp, RotateCcw,
 } from 'lucide-react'
-import { toStructuredOutput } from '@/lib/structured-output'
-import type { StructuredOutput } from '@/lib/structured-output'
-import type { EliteResearchOutput } from '@/lib/schemas'
+import { toStructuredOutput } from '@/ai/output/structured-output'
+import type { StructuredOutput } from '@/ai/output/structured-output'
+import type { EliteResearchOutput } from '@/ai/schemas'
 
 interface Props {
   data: Partial<EliteResearchOutput>
@@ -106,7 +106,7 @@ function ExecutiveAnswer({ data, delay }: { data: StructuredOutput['executiveAns
 // ── 2. Decision Breakdown ──────────────────────────────────────────────────────
 
 function DecisionBreakdown({ data, delay }: { data: NonNullable<StructuredOutput['decisionBreakdown']>; delay: number }) {
-  const { criteria, options, winner, winnerRationale, tradeoff, contraryPick } = data
+  const { criteria, options, winner, winnerRationale, tradeoff, contraryPick, killConditions } = data
   if (options.length === 0 && !winner) return null
 
   return (
@@ -231,6 +231,30 @@ function DecisionBreakdown({ data, delay }: { data: NonNullable<StructuredOutput
             </div>
           </div>
         </motion.div>
+      )}
+
+      {/* Kill Conditions — when to reverse course */}
+      {killConditions.length > 0 && (
+        <Card delay={delay + 0.045}
+          style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.14)' }}>
+          <div className="p-5">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="flex items-center justify-center h-6 w-6 rounded-md shrink-0"
+                style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
+                <RotateCcw className="h-3 w-3 text-red-400" />
+              </div>
+              <Label>When to Reverse Course</Label>
+            </div>
+            <div className="space-y-2.5">
+              {killConditions.map((condition, i) => (
+                <div key={i} className="flex items-start gap-2.5">
+                  <span className="font-mono text-[11px] text-red-400 mt-0.5 shrink-0">✗</span>
+                  <p className="text-[13.5px] text-slate-300 leading-[1.65]">{condition}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
       )}
 
       {/* Option detail cards */}
@@ -454,72 +478,74 @@ function WhatThisMisses({ data, delay }: { data: StructuredOutput['whatThisMisse
 
 // ── 6. Action Plan ─────────────────────────────────────────────────────────────
 
-function ActionPlan({
+function ActionPlan({ data, delay }: { data: StructuredOutput['actionPlan']; delay: number }) {
+  const { steps, implications } = data
+  if (steps.length === 0 && !implications) return null
+
+  return (
+    <Card delay={delay} accentColor="rgba(6,182,212,0.3)">
+      <div className="p-5">
+        <div className="flex items-center gap-2.5 mb-4">
+          <CheckCircle2 className="h-3.5 w-3.5 text-cyan-400" />
+          <Label>Action Plan</Label>
+        </div>
+        {implications && (
+          <p className="text-[13.5px] text-slate-400 leading-[1.65] italic mb-4">{implications}</p>
+        )}
+        {steps.length > 0 && (
+          <div className="space-y-2.5">
+            {steps.map((step, i) => (
+              <div key={i} className="flex items-start gap-2.5">
+                <div className="flex items-center justify-center h-4 w-4 rounded shrink-0 mt-0.5"
+                  style={{ background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.2)' }}>
+                  <span className="font-mono text-[8px] font-bold text-cyan-400">{i + 1}</span>
+                </div>
+                <p className="text-[13.5px] text-slate-300 leading-[1.65]">{step}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Card>
+  )
+}
+
+// ── Go Deeper (standalone, interactive) ───────────────────────────────────────
+
+function GoDeeperCard({
   data, delay, onGoDeeper,
 }: {
-  data: StructuredOutput['actionPlan']
+  data: StructuredOutput['goDeeper']
   delay: number
   onGoDeeper?: (q: string) => void
 }) {
-  const { steps, goDeeper, implications } = data
-  if (steps.length === 0 && goDeeper.length === 0 && !implications) return null
-
+  if (data.questions.length === 0) return null
   return (
-    <div className="space-y-3.5">
-      {(steps.length > 0 || implications) && (
-        <Card delay={delay} accentColor="rgba(6,182,212,0.3)">
-          <div className="p-5">
-            <div className="flex items-center gap-2.5 mb-4">
-              <CheckCircle2 className="h-3.5 w-3.5 text-cyan-400" />
-              <Label>Action Plan</Label>
-            </div>
-            {implications && (
-              <p className="text-[13.5px] text-slate-400 leading-[1.65] italic mb-4">{implications}</p>
-            )}
-            {steps.length > 0 && (
-              <div className="space-y-2.5">
-                {steps.map((step, i) => (
-                  <div key={i} className="flex items-start gap-2.5">
-                    <div className="flex items-center justify-center h-4 w-4 rounded shrink-0 mt-0.5"
-                      style={{ background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.2)' }}>
-                      <span className="font-mono text-[8px] font-bold text-cyan-400">{i + 1}</span>
-                    </div>
-                    <p className="text-[13.5px] text-slate-300 leading-[1.65]">{step}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {goDeeper.length > 0 && (
-        <Card delay={delay + 0.02}>
-          <div className="p-5">
-            <div className="flex items-center gap-2 mb-3.5">
-              <HelpCircle className="h-3.5 w-3.5 text-violet-400" />
-              <Label>Go Deeper</Label>
-            </div>
-            <div className="space-y-1.5">
-              {goDeeper.map((q, i) =>
-                onGoDeeper ? (
-                  <button key={i} onClick={() => onGoDeeper(q)}
-                    className="w-full text-left text-[12px] text-slate-500 leading-[1.55] pl-3 py-1 pr-2 rounded-r transition-all duration-150 hover:text-violet-300"
-                    style={{ borderLeft: '1px solid rgba(139,92,246,0.22)' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderLeftColor = 'rgba(139,92,246,0.55)' }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderLeftColor = 'rgba(139,92,246,0.22)' }}>
-                    {q}
-                  </button>
-                ) : (
-                  <p key={i} className="text-[12px] text-slate-500 leading-[1.55] pl-3 py-0.5"
-                    style={{ borderLeft: '1px solid rgba(139,92,246,0.2)' }}>{q}</p>
-                )
-              )}
-            </div>
-          </div>
-        </Card>
-      )}
-    </div>
+    <Card delay={delay}>
+      <div className="p-5">
+        <div className="flex items-center gap-2 mb-3.5">
+          <HelpCircle className="h-3.5 w-3.5 text-violet-400" />
+          <Label>Go Deeper</Label>
+          <span className="ml-auto font-mono text-[10px] text-slate-700">{data.questions.length}</span>
+        </div>
+        <div className="space-y-1.5">
+          {data.questions.map((q, i) =>
+            onGoDeeper ? (
+              <button key={i} onClick={() => onGoDeeper(q)}
+                className="w-full text-left text-[13px] text-slate-400 leading-[1.6] pl-3.5 py-1.5 pr-2 rounded-r transition-all duration-150 hover:text-violet-300"
+                style={{ borderLeft: '2px solid rgba(139,92,246,0.25)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderLeftColor = 'rgba(139,92,246,0.6)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderLeftColor = 'rgba(139,92,246,0.25)' }}>
+                {q}
+              </button>
+            ) : (
+              <p key={i} className="text-[13px] text-slate-500 leading-[1.6] pl-3.5 py-1"
+                style={{ borderLeft: '2px solid rgba(139,92,246,0.2)' }}>{q}</p>
+            )
+          )}
+        </div>
+      </div>
+    </Card>
   )
 }
 
@@ -681,35 +707,24 @@ function ChallengeView({ data, delay }: { data: NonNullable<StructuredOutput['ch
         </Card>
       )}
 
-      {blindSpots.length > 0 && (
+      {(blindSpots.length > 0 || misconceptions.length > 0) && (
         <Card delay={delay + 0.035}>
           <div className="p-5">
-            <div className="flex items-center gap-2 mb-3.5">
+            <div className="flex items-center gap-2 mb-4">
               <HelpCircle className="h-3.5 w-3.5 text-violet-400" />
-              <Label>Blind Spots</Label>
+              <Label>What This Argument Gets Wrong</Label>
             </div>
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {blindSpots.map((spot, i) => (
-                <div key={i} className="flex items-start gap-2.5">
-                  <span className="font-mono text-[12px] text-violet-400 mt-0.5 shrink-0">◈</span>
+                <div key={`bs-${i}`} className="flex items-start gap-2.5 p-2.5 rounded-lg"
+                  style={{ background: 'rgba(139,92,246,0.05)', border: '1px solid rgba(139,92,246,0.1)' }}>
+                  <span className="font-mono text-[11px] text-violet-400 mt-0.5 shrink-0">◈</span>
                   <p className="text-[13.5px] text-slate-300 leading-[1.65]">{spot}</p>
                 </div>
               ))}
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {misconceptions.length > 0 && (
-        <Card delay={delay + 0.025}>
-          <div className="p-5">
-            <div className="flex items-center gap-2 mb-3.5">
-              <X className="h-3.5 w-3.5 text-slate-500" />
-              <Label>Wrong Assumptions</Label>
-            </div>
-            <div className="space-y-2.5">
               {misconceptions.map((m, i) => (
-                <div key={i} className="flex items-start gap-2.5">
+                <div key={`mc-${i}`} className="flex items-start gap-2.5 p-2.5 rounded-lg"
+                  style={{ background: 'rgba(244,63,94,0.04)', border: '1px solid rgba(244,63,94,0.1)' }}>
                   <span className="font-mono text-[11px] text-rose-400 mt-0.5 shrink-0">✗</span>
                   <p className="text-[13.5px] text-slate-400 leading-[1.65]">{m}</p>
                 </div>
@@ -745,7 +760,7 @@ function ChallengeView({ data, delay }: { data: NonNullable<StructuredOutput['ch
 // ── 10. Execution View (FORGE) ────────────────────────────────────────────────
 
 function ExecutionView({ data, delay }: { data: NonNullable<StructuredOutput['execution']>; delay: number }) {
-  const { steps, resourcesNeeded, potentialBlockers, firstActions, adversarialReview } = data
+  const { steps, resourcesNeeded, potentialBlockers, adversarialReview } = data
   if (steps.length === 0) return null
 
   return (
@@ -812,28 +827,6 @@ function ExecutionView({ data, delay }: { data: NonNullable<StructuredOutput['ex
         )}
       </div>
 
-      {firstActions.length > 0 && (
-        <Card delay={delay + 0.045} accentColor="rgba(6,182,212,0.3)">
-          <div className="p-5">
-            <div className="flex items-center gap-2.5 mb-4">
-              <CheckCircle2 className="h-3.5 w-3.5 text-cyan-400" />
-              <Label>Start Today</Label>
-            </div>
-            <div className="space-y-2.5">
-              {firstActions.map((action, i) => (
-                <div key={i} className="flex items-start gap-2.5">
-                  <div className="flex items-center justify-center h-4 w-4 rounded shrink-0 mt-0.5"
-                    style={{ background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.2)' }}>
-                    <span className="font-mono text-[8px] font-bold text-cyan-400">{i + 1}</span>
-                  </div>
-                  <p className="text-[13.5px] text-slate-300 leading-[1.65]">{action}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Card>
-      )}
-
       {adversarialReview && (
         <motion.div
           initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
@@ -860,7 +853,7 @@ function ExecutionView({ data, delay }: { data: NonNullable<StructuredOutput['ex
 // ── 11. Analysis View (CIPHER) ────────────────────────────────────────────────
 
 function AnalysisView({ data, delay }: { data: NonNullable<StructuredOutput['analysis']>; delay: number }) {
-  const { overview, keyFindings, patterns } = data
+  const { overview, keyFindings, patterns, implications } = data
   if (!overview && keyFindings.length === 0 && patterns.length === 0) return null
 
   return (
@@ -941,6 +934,26 @@ function AnalysisView({ data, delay }: { data: NonNullable<StructuredOutput['ana
             </div>
           </div>
         </Card>
+      )}
+
+      {implications && (
+        <motion.div
+          initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18, delay: delay + 0.03, ease: [0.16, 1, 0.3, 1] }}
+          className="card-bevel rounded-2xl overflow-hidden"
+          style={{ background: 'rgba(6,182,212,0.04)', border: '1px solid rgba(6,182,212,0.18)' }}
+        >
+          <div className="p-5 flex items-start gap-3">
+            <div className="flex items-center justify-center h-6 w-6 rounded-md shrink-0 mt-0.5"
+              style={{ background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.2)' }}>
+              <TrendingUp className="h-3 w-3 text-cyan-400" />
+            </div>
+            <div>
+              <p className="text-[9.5px] font-mono tracking-[0.18em] uppercase text-cyan-400/70 mb-2">Strategic Implications</p>
+              <p className="text-[13.5px] text-slate-300 leading-[1.65]">{implications}</p>
+            </div>
+          </div>
+        </motion.div>
       )}
     </div>
   )
@@ -1055,6 +1068,11 @@ export function StructuredOutputView({ data, isLoading: _isLoading, onGoDeeper }
   const s = toStructuredOutput(data)
   const mode = s.executiveAnswer.queryMode
 
+  // Modes where Action Plan is meaningful (the model produces real next steps)
+  const showActionPlan = mode !== 'action' && mode !== 'perspectives'
+  // Modes where Go Deeper questions add real value
+  const showGoDeeper = mode !== 'decision' && mode !== 'action'
+
   return (
     <div className="space-y-3.5">
       {/* Universal: executive answer */}
@@ -1090,8 +1108,11 @@ export function StructuredOutputView({ data, isLoading: _isLoading, onGoDeeper }
       {mode !== 'competitive' && mode !== 'action' && mode !== 'explainer' && (
         <WhatThisMisses data={s.whatThisMisses} delay={0.07} />
       )}
-      {mode !== 'action' && (
-        <ActionPlan data={s.actionPlan} delay={0.08} onGoDeeper={onGoDeeper} />
+      {showActionPlan && (
+        <ActionPlan data={s.actionPlan} delay={0.08} />
+      )}
+      {showGoDeeper && (
+        <GoDeeperCard data={s.goDeeper} delay={0.09} onGoDeeper={onGoDeeper} />
       )}
 
       {/* Universal: sources */}

@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import { motion } from 'motion/react'
 import { Check } from 'lucide-react'
 
@@ -279,7 +280,7 @@ interface Props {
   selectedAgent?: string | null
 }
 
-export function AgentCards({ onSelect, disabled, selectedAgent }: Props) {
+function AgentCardsInner({ onSelect, disabled, selectedAgent }: Props) {
   const hasSelection = Boolean(selectedAgent)
 
   return (
@@ -422,3 +423,5 @@ export function AgentCards({ onSelect, disabled, selectedAgent }: Props) {
     </div>
   )
 }
+
+export const AgentCards = memo(AgentCardsInner)

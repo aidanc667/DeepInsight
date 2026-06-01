@@ -15,9 +15,10 @@ import { ClarificationCard } from '@/components/research/ClarificationCard'
 import { StructuredOutputView } from '@/components/research/StructuredOutputView'
 import { ResearchHistory } from '@/components/research/ResearchHistory'
 import { AgentCards } from '@/components/research/AgentCards'
-import { EliteResearchOutputSchema } from '@/lib/schemas'
+import { EliteResearchOutputSchema } from '@/ai/schemas'
+import { getModeCap } from '@/ai/config/modes'
 import { saveSession, loadSessions } from '@/lib/research-memory'
-import type { ClarificationQuestion, TrustScore, QueryMode, EliteResearchOutput } from '@/lib/schemas'
+import type { ClarificationQuestion, TrustScore, QueryMode, EliteResearchOutput } from '@/ai/schemas'
 
 type AppState = 'idle' | 'checking' | 'questioning' | 'researching' | 'done'
 type QuestionEntry = { question: ClarificationQuestion; answer: string }
@@ -81,6 +82,36 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
   // Holds the in-flight presearch promise so startResearch can await it
   const presearchRef = useRef<Promise<{ rawText: string; citations: unknown[] } | null> | null>(null)
 
+  // Debounced pre-classify while typing — fires /api/classify after 600ms of inactivity.
+  // Result cached in detectedMode so handleAnalyze can skip the classify call.
+  const classifyAbortRef = useRef<AbortController | null>(null)
+  useEffect(() => {
+    if (appState !== 'idle' || selectedAgent) return
+    if (prompt.trim().length < 12) return
+    const timer = setTimeout(async () => {
+      classifyAbortRef.current?.abort()
+      const ctrl = new AbortController()
+      classifyAbortRef.current = ctrl
+      try {
+        const res = await fetch('/api/classify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: prompt.trim() }),
+          signal: ctrl.signal,
+        })
+        if (!res.ok) return
+        const data = await res.json()
+        if (data?.mode) setDetectedMode(data.mode as QueryMode)
+      } catch {
+        // Aborted or network error — ignore
+      }
+    }, 600)
+    return () => {
+      clearTimeout(timer)
+      classifyAbortRef.current?.abort()
+    }
+  }, [prompt, appState, selectedAgent])
+
   // Current question = plan[questionIndex], or null if past the end
   const currentQuestion = questionPlan?.questions[questionIndex] ?? null
 
@@ -91,18 +122,44 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
       // Always mark done so buttons appear — even if result is partial/undefined
       setAppState('done')
       if (result) {
-        const sourcesCount   = result.sourceRegistry?.filter(s => s?.url)?.length ?? 0
+        const sourcesCount    = result.sourceRegistry?.filter(s => s?.url)?.length ?? 0
+        const highCredSources = result.sourceRegistry?.filter(s => s?.credibilityTier === 'high')?.length ?? 0
+        const medCredSources  = result.sourceRegistry?.filter(s => s?.credibilityTier === 'medium')?.length ?? 0
+
+        // Model confidence — the synthesizer's own self-assessed certainty (0–100)
         const modelConfidence = result.confidence ?? 50
-        const citationScore  = Math.min(sourcesCount / 8, 1)
-        const base           = (modelConfidence * 0.5) + (citationScore * 30) + (sourcesCount > 0 ? 20 : 5)
-        const finalScore     = Math.round(Math.min(100, Math.max(0, base)))
+
+        // Source quality — high-cred worth 1.0, medium 0.6, low 0.2
+        // Normalised 0–1 against total sources, capped at 1
+        const rawQuality  = (highCredSources * 1.0) + (medCredSources * 0.6) +
+                            ((sourcesCount - highCredSources - medCredSources) * 0.2)
+        const citationScore = sourcesCount > 0 ? Math.min(rawQuality / sourcesCount, 1) : 0.3
+
+        // Coverage — more corroborating sources = stronger claims; 10 sources = full score
+        const coverageScore = Math.min(sourcesCount / 10, 1)
+
+        // Recency proxy — higher-credibility sources skew more current
+        // Ranges 0.45 (all low-cred) → 0.90 (all high-cred)
+        const credRatio   = sourcesCount > 0 ? highCredSources / sourcesCount : 0
+        const recencyScore = 0.45 + credRatio * 0.45
+
+        // Formula: Confidence 30% | Quality 30% | Coverage 25% | Recency 15%
+        const T = (0.30 * modelConfidence) +
+                  (0.30 * citationScore * 100) +
+                  (0.25 * coverageScore * 100) +
+                  (0.15 * recencyScore  * 100)
+
+        const finalScore = Math.round(Math.min(100, Math.max(0, T)))
+        // Green ≥ 72 | Orange ≥ 45 | Red < 45
+        const alertLevel = finalScore >= 72 ? 'green' : finalScore >= 45 ? 'orange' : 'red'
+
         setTrustScore({
-          agreementScore:      sourcesCount > 2 ? 60 : 20,
+          modelConfidence: Math.round(modelConfidence),
           citationScore,
-          recencyScore:        0.7,
-          hallucinationPenalty: 0,
+          recencyScore,
+          coverageScore:   Math.round(coverageScore * 100),
           finalScore,
-          alertLevel: finalScore >= 65 ? 'green' : finalScore >= 40 ? 'orange' : 'red',
+          alertLevel,
         })
         const iterCount = sourcesCount > 8 ? 2 : 1
         setDeepResearch(iterCount > 1)
@@ -138,10 +195,12 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
   const startResearch = useCallback(async (context?: string) => {
     setAppState('researching')
     setDeepResearch(false)
-    // Await any in-flight presearch — if user answers quickly it may still be running
-    const prefetchedGemini = presearchRef.current ? await presearchRef.current : null
+    // Run presearch wait + session load in parallel — no reason to sequence them
+    const [prefetchedGemini, prior] = await Promise.all([
+      presearchRef.current ?? Promise.resolve(null),
+      loadSessions(),
+    ])
     presearchRef.current = null
-    const prior = await loadSessions()
     submit({
       prompt,
       clarificationContext: context,
@@ -168,10 +227,10 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
     // Keep selectedAgent — it stays highlighted through the research run
 
     try {
-      // Agent path: mode already known from card — skip classify, only run clarify/plan
-      // Deep research path: classify + plan in parallel
+      // Agent path or pre-classified: mode already known — skip classify call
+      const skipClassify = !!selectedAgent || !!detectedMode
       const [classifyRes, planRes] = await Promise.all([
-        selectedAgent
+        skipClassify
           ? Promise.resolve(null)
           : fetch('/api/classify', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -179,14 +238,14 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
             }),
         fetch('/api/clarify/plan', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, mode: selectedAgent ?? undefined }),
+          body: JSON.stringify({ prompt, mode: selectedAgent ?? detectedMode ?? undefined }),
         }),
       ])
 
       const classifyResult = classifyRes ? await classifyRes.json() : null
       const plan           = await planRes.json() as QuestionPlan & { error?: boolean }
 
-      const classifiedMode = (classifyResult?.mode ?? selectedAgent) as QueryMode | undefined
+      const classifiedMode = (classifyResult?.mode ?? selectedAgent ?? detectedMode) as QueryMode | undefined
       if (classifiedMode) setDetectedMode(classifiedMode)
 
       if (plan.questions && plan.questions.length > 0) {
@@ -234,10 +293,7 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
       return
     }
 
-    // All planned questions answered — ask the expert if it needs anything else.
-    // Hard cap is mode-aware: 5 for decision/action, 2 for explainer, 3 otherwise.
-    const modeCap = (detectedMode === 'decision' || detectedMode === 'action') ? 5
-      : detectedMode === 'explainer' ? 2 : 3
+    const modeCap = getModeCap(detectedMode ?? 'research')
     if (newHistory.length >= modeCap) {
       const ctx = newHistory.map(e => `${e.question.question}: ${e.answer}`).join('\n')
       startResearch(ctx)
@@ -351,6 +407,19 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
     setPrompt(query)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
+
+  // Stable reference — only changes when selectedAgent changes, NOT on every keystroke.
+  // This lets AgentCards (wrapped in React.memo) skip re-renders while the user types.
+  const useAgentSelect = useCallback((example: string, agentId: string) => {
+    if (selectedAgent === agentId) {
+      setSelectedAgent(null)
+      setDetectedMode(null)
+    } else {
+      setPrompt(example)
+      setSelectedAgent(agentId)
+      setDetectedMode(agentId as QueryMode)
+    }
+  }, [selectedAgent])
 
   const isResearching   = appState === 'researching' || isLoading
   const isInputDisabled = isResearching || appState === 'questioning'
@@ -473,17 +542,7 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
 
             {/* Agent cards */}
             <AgentCards
-              onSelect={(example, agentId) => {
-                // Toggle: clicking the active agent deselects it
-                if (selectedAgent === agentId) {
-                  setSelectedAgent(null)
-                  setDetectedMode(null)
-                } else {
-                  setPrompt(example)
-                  setSelectedAgent(agentId)
-                  setDetectedMode(agentId as import('@/lib/schemas').QueryMode)
-                }
-              }}
+              onSelect={useAgentSelect}
               selectedAgent={selectedAgent}
               disabled={isInputDisabled}
             />
@@ -674,7 +733,7 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
                 </div>
               )}
               <StructuredOutputView
-                data={object as Partial<import('@/lib/schemas').EliteResearchOutput>}
+                data={object as Partial<EliteResearchOutput>}
                 isLoading={isLoading}
                 onGoDeeper={handleGoDeeper}
               />

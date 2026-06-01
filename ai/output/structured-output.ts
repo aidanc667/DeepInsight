@@ -42,6 +42,7 @@ export interface DecisionBreakdown {
   winnerRationale: string
   tradeoff: string
   contraryPick: string
+  killConditions: string[]
 }
 
 export interface EvidenceAndInsights {
@@ -57,8 +58,11 @@ export interface WhatThisMisses {
 
 export interface ActionPlan {
   steps: string[]
-  goDeeper: string[]
   implications: string
+}
+
+export interface GoDeeperSection {
+  questions: string[]
 }
 
 // ─── Agent-specific section types ─────────────────────────────────────────────
@@ -80,7 +84,6 @@ export interface ExecutionSection {
   steps: { step: string; detail: string }[]
   resourcesNeeded: string
   potentialBlockers: string[]
-  firstActions: string[]
   adversarialReview: string
 }
 
@@ -88,6 +91,7 @@ export interface AnalysisSection {
   overview: string
   keyFindings: ResearchFinding[]
   patterns: string[]
+  implications: string
 }
 
 export interface UnderstandingSection {
@@ -106,6 +110,7 @@ export interface StructuredOutput {
   risks:               string[]
   whatThisMisses:      WhatThisMisses
   actionPlan:          ActionPlan
+  goDeeper:            GoDeeperSection
   sources:             SourceRegistryItem[]
   // Mode-specific primary (only one will be non-null per response)
   decisionBreakdown:   DecisionBreakdown | null
@@ -137,9 +142,8 @@ export function toStructuredOutput(raw: Partial<EliteResearchOutput>): Structure
     },
 
     // ── 2. Risks ────────────────────────────────────────────────────────────
-    risks: raw.risks?.filter(Boolean)
-      ?? (isDecisionMode ? raw.killConditions?.filter(Boolean) : undefined)
-      ?? [],
+    // Decision mode: risks come from the risks field directly (kill conditions are separate)
+    risks: raw.risks?.filter(Boolean) ?? [],
 
     // ── 3. What This Misses ─────────────────────────────────────────────────
     whatThisMisses: {
@@ -149,9 +153,13 @@ export function toStructuredOutput(raw: Partial<EliteResearchOutput>): Structure
 
     // ── 4. Action Plan ──────────────────────────────────────────────────────
     actionPlan: {
-      steps:       raw.actionableNextSteps?.filter((s): s is string => !!s) ?? [],
-      goDeeper:    raw.goDeeper?.filter((g): g is string => !!g)             ?? [],
+      steps:        raw.actionableNextSteps?.filter((s): s is string => !!s) ?? [],
       implications: raw.implications ?? '',
+    },
+
+    // ── 4b. Go Deeper (separate from action plan) ───────────────────────────
+    goDeeper: {
+      questions: raw.goDeeper?.filter((g): g is string => !!g) ?? [],
     },
 
     // ── 5. Sources ──────────────────────────────────────────────────────────
@@ -165,6 +173,7 @@ export function toStructuredOutput(raw: Partial<EliteResearchOutput>): Structure
       winnerRationale: raw.winnerRationale ?? '',
       tradeoff:        raw.tradeoff        ?? '',
       contraryPick:    raw.contraryPick    ?? '',
+      killConditions:  raw.killConditions?.filter(Boolean) ?? [],
     } : null,
 
     // ── Research (SCOUT) ────────────────────────────────────────────────────
@@ -198,17 +207,17 @@ export function toStructuredOutput(raw: Partial<EliteResearchOutput>): Structure
         ?.filter(s => !!s?.step)
         .map(s => ({ step: s.step, detail: s.detail }))
         ?? [],
-      resourcesNeeded:  raw.resourcesNeeded  ?? '',
+      resourcesNeeded:   raw.resourcesNeeded  ?? '',
       potentialBlockers: raw.potentialBlockers?.filter(Boolean) ?? [],
-      firstActions:     raw.actionableNextSteps?.filter(Boolean) ?? [],
       adversarialReview: raw.adversarialReview ?? '',
     } : null,
 
     // ── Analysis (CIPHER) ───────────────────────────────────────────────────
     analysis: mode === 'intelligence' ? {
-      overview:    raw.overview ?? '',
-      keyFindings: raw.keyFindings?.filter((f): f is ResearchFinding => !!f?.finding) ?? [],
-      patterns:    raw.patterns?.filter(Boolean) ?? [],
+      overview:     raw.overview     ?? '',
+      keyFindings:  raw.keyFindings?.filter((f): f is ResearchFinding => !!f?.finding) ?? [],
+      patterns:     raw.patterns?.filter(Boolean) ?? [],
+      implications: raw.implications ?? '',
     } : null,
 
     // ── Understanding (SAGE) ────────────────────────────────────────────────

@@ -24,7 +24,6 @@ import {
   extractSourceSnippets,
 } from '@/ai/nodes/models'
 import { enrichResearchContext } from '@/ai/nodes/context-enricher'
-import { TrustEngine } from '@/ai/services/trust-engine'
 import { QueryClassifierSchema, QUERY_MODES, getSchemaForMode } from '@/ai/schemas'
 import type { QueryMode } from '@/ai/schemas'
 import { getSynthesizerSystem, buildSynthesizerPrompt } from '@/ai/prompts/synthesizer'
@@ -127,6 +126,28 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
     ? { modelId: 'gemini' as const, rawText: prefetchedGemini.rawText, citations: prefetchedGemini.citations, latencyMs: 0 }
     : null
 
+  const agentSelected = !!clientMode
+
+  // ── Phase 2 + 2.5: Model calls and source extraction in parallel ───────────
+  // When prefetched Gemini is available we already have citation URLs, so we can
+  // kick off source extraction immediately alongside Phase 2 rather than waiting
+  // for Phase 2 to complete first. This saves up to 1.5s on the critical path.
+  //
+  // Agent path: skip source extraction entirely — snippets aren't needed for
+  // focused single-role output, and skipping saves 1.5s.
+
+  const prefetchedCitationRefs = prefetchedGeminiResponse
+    ? prefetchedGeminiResponse.citations.map((c: { url: string; domain: string }) => ({ url: c.url, domain: c.domain }))
+    : null
+
+  // Start source extraction early only when we have citations from presearch
+  const earlySnippetsPromise = (!agentSelected && prefetchedCitationRefs && prefetchedCitationRefs.length > 0)
+    ? Promise.race([
+        extractSourceSnippets(prefetchedCitationRefs).catch(() => [] as Awaited<ReturnType<typeof extractSourceSnippets>>),
+        new Promise<[]>(resolve => setTimeout(() => resolve([]), 1000)),
+      ])
+    : null
+
   const [claudeResult, geminiResult] = await Promise.allSettled([
     CLAUDE_REASONING_MODES.has(mode) ? callClaude(researchPrompt) : Promise.resolve(emptyClaudeResponse),
     GEMINI_SEARCH_MODES.has(mode)
@@ -160,16 +181,17 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
   const allCitations = geminiCitations
   const citationRefs = allCitations.map(c => ({ url: c.url, domain: c.domain }))
 
-  const agentSelected = !!clientMode
-
   // ── Phase 2.5: Source extraction ──────────────────────────────────────────
-  // Agent path: skip entirely — saves 1.5s, snippets aren't needed for focused output.
-  // Deep research path: fire immediately but don't block synthesis — 1.5s cap.
+  // If early extraction already ran in parallel with Phase 2, reuse those results.
+  // Otherwise fall back to the standard post-Phase-2 extraction with a 1s cap.
   let sourceSnippets: Awaited<ReturnType<typeof extractSourceSnippets>> = []
   if (!agentSelected && geminiText) {
-    const snippetsPromise = extractSourceSnippets(citationRefs).catch(() => [])
-    const snippetTimeout  = new Promise<[]>(resolve => setTimeout(() => resolve([]), 1500))
-    sourceSnippets = await Promise.race([snippetsPromise, snippetTimeout])
+    if (earlySnippetsPromise) {
+      sourceSnippets = await earlySnippetsPromise
+    } else {
+      const snippetsPromise = extractSourceSnippets(citationRefs).catch(() => [] as Awaited<ReturnType<typeof extractSourceSnippets>>)
+      sourceSnippets = await Promise.race([snippetsPromise, new Promise<[]>(resolve => setTimeout(() => resolve([]), 1000))])
+    }
     if (sourceSnippets.length > 0) {
       console.log(`[research] extracted content from ${sourceSnippets.length} sources`)
     }
@@ -198,10 +220,10 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
     ? anthropic('claude-haiku-4-5')
     : anthropic('claude-sonnet-4-5')
 
-  const maxTokens = mode === 'decision' ? 2500
-    : agentSelected ? 1200
-    : mode === 'research' || mode === 'intelligence' || mode === 'explainer' ? 1400
-    : 1800
+  const maxTokens = mode === 'decision' ? 2000
+    : agentSelected ? 1000
+    : mode === 'research' || mode === 'intelligence' || mode === 'explainer' ? 1200
+    : 1500
 
   const synthesisResult = streamText({
     model: synthesisModel,
@@ -217,14 +239,6 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
     ),
     output: Output.object({ schema: getSchemaForMode(mode) }),
     maxOutputTokens: maxTokens,
-    onFinish: async () => {
-      const modelResponses = [claudeResult, geminiResult]
-        .filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof callClaude>>> => r.status === 'fulfilled')
-        .map(r => r.value)
-      const engine = new TrustEngine()
-      const trustScore = engine.calculate(modelResponses, [])
-      console.log(`[research] trust: ${trustScore.finalScore} | mode: ${mode}`)
-    },
   })
 
   return synthesisResult.toTextStreamResponse()

@@ -1,6 +1,7 @@
 import { generateText } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
 import { getExpertPersona } from '@/ai/prompts/expert-personas'
+import { getModeCap, getModeStopCondition } from '@/ai/config/modes'
 
 export const maxDuration = 10
 
@@ -9,27 +10,10 @@ interface HistoryEntry {
   answer: string
 }
 
-function getHardCap(mode: string): number {
-  if (mode === 'decision' || mode === 'action') return 5
-  if (mode === 'explainer') return 2
-  return 3
-}
-
 function buildSystem(prompt: string, historyLength: number, mode: string): string {
   const { title, description } = getExpertPersona(prompt)
-  const hardCap = getHardCap(mode)
-
-  const modeStopConditions: Record<string, string> = {
-    decision:     'You know the specific options being compared AND at least one key constraint (budget, must-haves)',
-    action:       'You know their starting point AND available resources or timeline',
-    explainer:    'You know their background level — that alone shapes the entire explanation',
-    perspectives: 'The debate topic and their stakes are clear',
-    intelligence: 'The angle and use case are clear',
-    competitive:  'The specific claim being challenged is clear',
-    research:     'You know their objective AND at least one key constraint or context factor',
-  }
-
-  const stopCondition = modeStopConditions[mode] ?? modeStopConditions.research
+  const hardCap = getModeCap(mode)
+  const stopCondition = getModeStopCondition(mode)
 
   return `${description}
 
@@ -88,8 +72,7 @@ export async function POST(req: Request) {
     }
     const prompt = rawPrompt.trim().slice(0, 2000).replace(/[\x00-\x1F\x7F]/g, '')
 
-    // Enforce hard cap — stop immediately if already at limit
-    const hardCap = getHardCap(mode)
+    const hardCap = getModeCap(mode)
     if (history.length >= hardCap) {
       return Response.json({ done: true, reason: 'Question limit reached' })
     }

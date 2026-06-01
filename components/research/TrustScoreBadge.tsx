@@ -1,7 +1,7 @@
 'use client'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import type { TrustScore } from '@/lib/schemas'
+import type { TrustScore } from '@/ai/schemas'
 
 interface Props { score: TrustScore }
 
@@ -57,23 +57,21 @@ export function TrustScoreBadge({ score }: Props) {
       >
         <p className="font-mono text-[10px] tracking-wider text-slate-500 uppercase mb-2">Score Breakdown</p>
         <div className="flex justify-between text-slate-400">
-          <span>Agreement ×0.4</span>
-          <span className="font-mono text-slate-300">{score.agreementScore.toFixed(0)} pts</span>
+          <span>Model confidence ×0.30</span>
+          <span className="font-mono text-slate-300">{score.modelConfidence.toFixed(0)} pts</span>
         </div>
         <div className="flex justify-between text-slate-400">
-          <span>Citations ×0.3</span>
+          <span>Source quality ×0.30</span>
           <span className="font-mono text-slate-300">{(score.citationScore * 100).toFixed(0)} pts</span>
         </div>
         <div className="flex justify-between text-slate-400">
-          <span>Recency ×0.2</span>
+          <span>Coverage ×0.25</span>
+          <span className="font-mono text-slate-300">{score.coverageScore} pts</span>
+        </div>
+        <div className="flex justify-between text-slate-400">
+          <span>Recency proxy ×0.15</span>
           <span className="font-mono text-slate-300">{(score.recencyScore * 100).toFixed(0)} pts</span>
         </div>
-        {score.hallucinationPenalty > 0 && (
-          <div className="flex justify-between text-red-400">
-            <span>Penalty</span>
-            <span className="font-mono">−{score.hallucinationPenalty}</span>
-          </div>
-        )}
         <div className="border-t border-white/[0.07] pt-1.5 flex justify-between font-semibold">
           <span className="text-slate-400">Final</span>
           <span className={`font-mono ${cfg.text}`}>{score.finalScore}/100</span>

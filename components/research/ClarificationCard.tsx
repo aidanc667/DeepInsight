@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import type { ClarificationQuestion } from '@/lib/schemas'
+import type { ClarificationQuestion } from '@/ai/schemas'
 
 interface Props {
   question: ClarificationQuestion

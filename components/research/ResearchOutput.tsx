@@ -5,7 +5,7 @@ import {
   BookOpen, Lightbulb, AlertTriangle, CheckCircle2,
   ExternalLink, Shield, ArrowRight, HelpCircle
 } from 'lucide-react'
-import type { EliteResearchOutput } from '@/lib/schemas'
+import type { EliteResearchOutput } from '@/ai/schemas'
 
 interface Props {
   data: Partial<EliteResearchOutput>

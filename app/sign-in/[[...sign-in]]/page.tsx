@@ -28,7 +28,7 @@ export default function SignInPage() {
         </span>
       </div>
 
-      <SignIn />
+      <SignIn afterSignInUrl="/" fallbackRedirectUrl="/" />
     </div>
   )
 }
