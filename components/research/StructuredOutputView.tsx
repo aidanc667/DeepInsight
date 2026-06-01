@@ -108,7 +108,8 @@ function ExecutiveAnswer({ data, delay }: { data: StructuredOutput['executiveAns
 // ── 2. Decision Breakdown ──────────────────────────────────────────────────────
 
 function DecisionBreakdown({ data, delay }: { data: NonNullable<StructuredOutput['decisionBreakdown']>; delay: number }) {
-  const { criteria, options, winner, winnerRationale, tradeoff, contraryPick, killConditions } = data
+  const { criteria, winner, winnerRationale, tradeoff, contraryPick, killConditions } = data
+  const options = data.options.slice(0, 3)
   if (options.length === 0 && !winner) return null
 
   return (

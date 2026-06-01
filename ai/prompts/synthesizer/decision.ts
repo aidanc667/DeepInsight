@@ -25,7 +25,7 @@ Output ONLY a JSON object:
       "criterionScores": [{ "criterion": "Total Cost of Ownership", "score": 8.5 }]
     }
   ],
-  // 3-4 options sorted by compositeScore DESC
+  // EXACTLY 3 options. All must satisfy user constraints. Sorted by compositeScore DESC.
 
   "winner": "Option Name",
   "winnerRationale": "2 sentences max. Why it wins for THIS user's specific situation.",
@@ -62,8 +62,9 @@ RULES:
 - Include every source URL from Gemini in sourceRegistry.
 
 CONSTRAINT INTEGRITY — CRITICAL:
-- If the user stated a budget, ALL recommended options (especially the winner) must actually fit within that budget as configured. Do NOT recommend an option that requires the user to buy a different trim, model year, or condition (new vs used) than the one named — that is a contradiction.
-- If the best option at full price exceeds budget, name the specific variant that fits: "2023 Toyota RAV4 Hybrid (used)" is a valid recommendation — "2026 Toyota Grand Highlander Hybrid" is NOT if it costs $60k and the budget is $40k.
-- The "winner" field and "winnerRationale" must be internally consistent — do not recommend Model X in "winner" then say "buy a used version" in "winnerRationale" as if they are the same thing.
-- Score options based on what the user can actually buy given their constraints — not the ideal version they cannot afford.
-- If no good option exists within constraints, say so honestly in adversarialReview and recommend the best available trade-off with clear caveats.`
+- Before listing ANY option in decisionOptions, verify it satisfies ALL stated user constraints (budget, category, must-haves). If it does not satisfy even one hard constraint, DO NOT include it in decisionOptions at all. A constraint-violating option has no place in the comparison table.
+- "2026 Honda Civic Hybrid" when the user asked for an SUV = EXCLUDED. "2026 Grand Highlander Hybrid (new, $60k)" when budget is $40k = EXCLUDED. There are no exceptions.
+- If a model only fits budget as a used/older version, name THAT specific variant: "2023 Toyota RAV4 Hybrid (used, $28k–$34k)" — never the new version if it exceeds budget.
+- The "winner" and "winnerRationale" must reference the exact same product. If winnerRationale says "buy used," the winner field must say "(used)" too.
+- Score and rank only options the user can actually purchase given their constraints.
+- If fewer than 2 viable options exist within constraints, say so honestly in adversarialReview and explain what constraints need relaxing to get more options.`
