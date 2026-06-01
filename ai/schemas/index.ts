@@ -36,7 +36,7 @@ export const TrustScoreSchema = z.object({
 
 // ─── Query Classification ─────────────────────────────────────────────────────
 
-export const QUERY_MODES = ['decision', 'research', 'intelligence', 'perspectives', 'competitive', 'explainer', 'action'] as const
+export const QUERY_MODES = ['decision', 'research', 'intelligence', 'perspectives', 'competitive', 'explainer', 'action', 'forecast'] as const
 export type QueryMode = typeof QUERY_MODES[number]
 
 export const QueryClassifierSchema = z.object({
@@ -240,6 +240,25 @@ export const ExplainerModeSchema = z.object({
   misconceptions: z.array(z.string()),
 })
 
+export const ForecastTrendSchema = z.object({
+  signal:      z.string(),   // the trend or signal name
+  direction:   z.enum(['accelerating', 'emerging', 'peaking', 'declining']),
+  timeHorizon: z.string(),   // e.g. "6–12 months", "2–3 years"
+  confidence:  z.enum(['high', 'medium', 'low']),
+  evidence:    z.string(),   // specific data points supporting this signal
+})
+
+export const ForecastModeSchema = z.object({
+  ...BASE_FIELDS,
+  headline:        z.string(),   // one bold forward-looking statement
+  keyTrends:       z.array(ForecastTrendSchema),
+  wildCard:        z.string(),   // the unexpected scenario most people aren't pricing in
+  consensus:       z.string(),   // what mainstream forecasters expect
+  contrarian:      z.string(),   // where the consensus is likely wrong
+  implications:    z.string(),   // what this means for decisions right now
+  goDeeper:        z.array(z.string()),
+})
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getSchemaForMode(mode: string): z.ZodObject<any> {
   switch (mode) {
@@ -249,6 +268,7 @@ export function getSchemaForMode(mode: string): z.ZodObject<any> {
     case 'competitive':  return ChallengeModeSchema
     case 'action':       return ActionModeSchema
     case 'explainer':    return ExplainerModeSchema
+    case 'forecast':     return ForecastModeSchema
     default:             return ResearchModeSchema
   }
 }

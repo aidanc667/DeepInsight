@@ -38,6 +38,7 @@ const MODE_CONFIG: Record<QueryMode, {
   competitive:  { label: 'Challenge',    icon: BarChart3,     tag: 'CHALLENGE',    accent: 'text-rose-400',   example: 'What are the biggest risks in building a consumer AI startup right now?' },
   explainer:    { label: 'Understanding',icon: Link2,         tag: 'UNDERSTANDING',accent: 'text-teal-400',   example: 'How does raising interest rates affect housing?' },
   action:       { label: 'Execution',    icon: ArrowRight,    tag: 'EXECUTION',    accent: 'text-orange-400', example: 'How do I launch a SaaS product from scratch?' },
+  forecast:     { label: 'Forecast',     icon: Zap,           tag: 'FORECAST',     accent: 'text-indigo-400', example: 'Where is AI heading in the next 2 years?' },
 }
 
 // ─── Outer shell — holds the reset key ────────────────────────────────────────

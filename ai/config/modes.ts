@@ -13,6 +13,10 @@ export interface ModeConfig {
 }
 
 export const MODES: Record<QueryMode, ModeConfig> = {
+  forecast: {
+    cap: 3,
+    stopCondition: 'You know the topic domain AND their time horizon or decision context',
+  },
   decision: {
     cap: 5,
     stopCondition: 'You know the specific options being compared AND at least one key constraint (budget, must-haves)',
@@ -61,6 +65,7 @@ export function inferMode(prompt: string): QueryMode {
   if (/\b(pros and cons|arguments? (for|against)|different (views|perspectives|sides)|debate|both sides|case for|case against)\b/i.test(prompt)) return 'perspectives'
   if (/\b(latest|current state|what.?s happening|trend|news about|state of|in 202[0-9])\b/i.test(prompt)) return 'intelligence'
   if (/\b(vs\.?\s|versus|compare|difference between|better than|x vs y)\b/i.test(prompt)) return 'competitive'
+  if (/\b(what will|where is .* headed|future of|predictions? for|in the next \d|what.?s coming|outlook for|forecast|by 20[2-9]\d)\b/i.test(prompt)) return 'forecast'
   return 'research'
 }
 
@@ -167,6 +172,23 @@ Ask up to ${cap} questions:
    Options: "Factual errors or misleading statistics", "Hidden assumptions that might not hold", "What gets left out of this argument", "Real-world failure cases and exceptions"
 
 OPTION RULES: Claim options must reflect REAL positions people actually hold on this topic.`
+
+    case 'forecast':
+      return `FORECAST MODE — The user wants forward-looking predictions, not current state.
+
+Ask up to ${cap} questions:
+1. TIME HORIZON — How far out are they looking?
+   Options: "Next 3–6 months", "1–2 years out", "3–5 year view", "Long-term / 5–10 years"
+
+2. DECISION CONTEXT — What will they DO with this forecast? This shapes which signals matter.
+   Options: "Investment or financial decision", "Business strategy or product roadmap", "Career or personal planning", "General intelligence and curiosity"
+
+3. ANGLE (if the topic is broad) — Which aspect of this topic's future matters most?
+   Generate 4 concrete, topic-specific options.
+
+OPTION RULES: Time horizon and decision context options should always be specific. Angle options must be tailored to the exact topic.
+
+Only ask fewer if the time horizon and decision context are already stated in the query.`
 
     default: // research + general
       return `RESEARCH MODE — The user wants thorough, expert-level information.

@@ -27,6 +27,24 @@ import type {
   SourceRegistryItem,
 } from '@/ai/schemas'
 
+export interface ForecastTrend {
+  signal: string
+  direction: 'accelerating' | 'emerging' | 'peaking' | 'declining'
+  timeHorizon: string
+  confidence: 'high' | 'medium' | 'low'
+  evidence: string
+}
+
+export interface ForecastSection {
+  headline: string
+  keyTrends: ForecastTrend[]
+  consensus: string
+  contrarian: string
+  wildCard: string
+  implications: string
+  goDeeper: string[]
+}
+
 // ─── Section types ────────────────────────────────────────────────────────────
 
 export interface ExecutiveAnswer {
@@ -120,6 +138,7 @@ export interface StructuredOutput {
   execution:           ExecutionSection | null
   analysis:            AnalysisSection | null
   understanding:       UnderstandingSection | null
+  forecast:            ForecastSection | null
 }
 
 // ─── Transformer ──────────────────────────────────────────────────────────────
@@ -227,6 +246,17 @@ export function toStructuredOutput(raw: Partial<EliteResearchOutput>): Structure
       keyTakeaway:    raw.keyTakeaway ?? '',
       mechanisms:     raw.keyFindings?.filter((f): f is ResearchFinding => !!f?.finding) ?? [],
       misconceptions: raw.misconceptions?.filter((m): m is string => !!m) ?? [],
+    } : null,
+
+    // ── Forecast (PULSE) ────────────────────────────────────────────────────
+    forecast: mode === 'forecast' ? {
+      headline:     (raw as Record<string, unknown>).headline as string ?? '',
+      keyTrends:    ((raw as Record<string, unknown>).keyTrends as ForecastTrend[] | undefined)?.filter(t => !!t?.signal) ?? [],
+      consensus:    (raw as Record<string, unknown>).consensus as string ?? '',
+      contrarian:   (raw as Record<string, unknown>).contrarian as string ?? '',
+      wildCard:     (raw as Record<string, unknown>).wildCard as string ?? '',
+      implications: raw.implications ?? '',
+      goDeeper:     raw.goDeeper?.filter((g): g is string => !!g) ?? [],
     } : null,
   }
 }

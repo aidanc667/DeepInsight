@@ -150,6 +150,38 @@ function SageAvatar() {
   )
 }
 
+function PulseAvatar() {
+  return (
+    <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+      <defs>
+        <radialGradient id="pu-bg" cx="50%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#0d1f3c" />
+          <stop offset="100%" stopColor="#050b18" />
+        </radialGradient>
+      </defs>
+      <circle cx="32" cy="32" r="30" fill="url(#pu-bg)" />
+      {/* Face base */}
+      <ellipse cx="32" cy="34" rx="19" ry="16" fill="#0a1830" stroke="#818cf8" strokeWidth="0.8" strokeOpacity="0.5" />
+      {/* Eyes with upward arrow pupils — forward-looking */}
+      <circle cx="22" cy="31" r="5.5" fill="#1e2d5a" />
+      <circle cx="22" cy="31" r="3.8" fill="#6366f1" />
+      <circle cx="22" cy="31" r="2" fill="#1e2d5a" />
+      <circle cx="21.5" cy="30.5" r="0.8" fill="white" />
+      <circle cx="42" cy="31" r="5.5" fill="#1e2d5a" />
+      <circle cx="42" cy="31" r="3.8" fill="#6366f1" />
+      <circle cx="42" cy="31" r="2" fill="#1e2d5a" />
+      <circle cx="41.5" cy="30.5" r="0.8" fill="white" />
+      {/* Rising trend line for mouth */}
+      <path d="M21 42 L27 38 L33 40 L43 35" stroke="#818cf8" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Arrow head at end of trend */}
+      <path d="M41 33 L43 35 L41 37" stroke="#818cf8" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Signal waves above head */}
+      <path d="M26 15 Q32 10 38 15" stroke="#6366f1" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeOpacity="0.8" />
+      <path d="M22 18 Q32 11 42 18" stroke="#6366f1" strokeWidth="1" fill="none" strokeLinecap="round" strokeOpacity="0.4" />
+    </svg>
+  )
+}
+
 function ForgeAvatar() {
   return (
     <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
@@ -270,6 +302,19 @@ export const AGENTS = [
     borderSel:   'rgba(94,234,212,0.7)',
     Avatar:      SageAvatar,
   },
+  {
+    id:          'forecast',
+    name:        'PULSE',
+    subtitle:    'Forecast',
+    tagline:     "See what's coming next.",
+    tag:         'FORECAST',
+    example:     "Where is AI heading in the next 2 years?",
+    accent:      '#818cf8',
+    glow:        'rgba(99,102,241,0.12)',
+    border:      'rgba(99,102,241,0.22)',
+    borderSel:   'rgba(129,140,248,0.7)',
+    Avatar:      PulseAvatar,
+  },
 ]
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -299,11 +344,8 @@ function AgentCardsInner({ onSelect, disabled, selectedAgent }: Props) {
         )}
       </div>
 
-      {/* Horizontal scroll row */}
-      <div
-        className="flex gap-3 overflow-x-auto pb-2"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
+      {/* 4 × 2 grid */}
+      <div className="grid grid-cols-4 gap-3">
         {AGENTS.map((agent, i) => {
           const isSelected = selectedAgent === agent.id
           const isDimmed   = hasSelection && !isSelected
@@ -322,9 +364,8 @@ function AgentCardsInner({ onSelect, disabled, selectedAgent }: Props) {
               disabled={disabled}
               whileHover={disabled ? {} : { y: -3, scale: isSelected ? 1.04 : 1.02, opacity: 1 }}
               whileTap={disabled   ? {} : { scale: 0.96 }}
-              className="group relative flex-shrink-0 flex flex-col items-center text-center rounded-2xl transition-colors duration-200 disabled:cursor-not-allowed cursor-pointer overflow-hidden"
+              className="group relative w-full flex flex-col items-center text-center rounded-2xl transition-colors duration-200 disabled:cursor-not-allowed cursor-pointer overflow-hidden"
               style={{
-                width:     '160px',
                 padding:   '14px 14px 14px',
                 background: isSelected
                   ? `linear-gradient(160deg, ${agent.glow.replace('0.12', '0.28')} 0%, rgba(8,12,24,0.98) 100%)`

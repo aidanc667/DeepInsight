@@ -14,6 +14,7 @@ MODES:
 - competitive: User wants to COMPARE specific named entities. Keywords: "X vs Y vs Z", "compare [company A] and [company B]". Example: "OpenAI vs Anthropic vs Google"
 - explainer: User wants to understand CAUSE AND EFFECT. Keywords: "how does X affect Y", "why did", "impact of X on Y". Example: "How does inflation affect stock prices?"
 - action: User wants a STEP-BY-STEP PLAN to do something. Keywords: "how do I start", "step by step", "plan to", "how to build/launch/create", "give me a roadmap". Example: "How do I launch a SaaS product?"
+- forecast: User wants PREDICTIONS about the future. Keywords: "what will happen", "where is X headed", "future of", "predictions for", "in the next X years", "what's coming", "outlook for". Example: "Where is AI heading in the next 2 years?"
 
 Rules:
 - Default to "research" if ambiguous
@@ -29,6 +30,7 @@ modeLabel mapping:
 - competitive → "Competitive Analysis"
 - explainer → "Explainer"
 - action → "Execution Plan"
+- forecast → "Forecast & Trends"
 
 Return JSON only.`
 

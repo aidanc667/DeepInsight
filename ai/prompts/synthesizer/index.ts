@@ -6,6 +6,7 @@ import { PERSPECTIVES_SYSTEM }  from './perspectives'
 import { CHALLENGE_SYSTEM }     from './challenge'
 import { ACTION_SYSTEM }        from './action'
 import { EXPLAINER_SYSTEM }     from './explainer'
+import { FORECAST_SYSTEM }      from './forecast'
 
 export function getSynthesizerSystem(mode: QueryMode | string): string {
   switch (mode) {
@@ -15,6 +16,7 @@ export function getSynthesizerSystem(mode: QueryMode | string): string {
     case 'competitive':  return CHALLENGE_SYSTEM
     case 'action':       return ACTION_SYSTEM
     case 'explainer':    return EXPLAINER_SYSTEM
+    case 'forecast':     return FORECAST_SYSTEM
     default:             return RESEARCH_SYSTEM
   }
 }
