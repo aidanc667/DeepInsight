@@ -54,4 +54,9 @@ Output ONLY a JSON object:
   "goDeeper": []
 }
 
-RULES: No filler. Be specific. Include every source URL from Gemini in sourceRegistry.`
+RULES:
+- No filler. Be specific.
+- Keep each string field to its stated length limit — do NOT over-write early fields.
+- "pros" and "cons" arrays: max 3 items, each under 12 words.
+- Complete EVERY field — do not truncate or omit trailing fields.
+- Include every source URL from Gemini in sourceRegistry.`
