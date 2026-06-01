@@ -72,7 +72,6 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
   const { prompt, forceProceed, mode: clientMode, priorSessions, prefetchedGemini } = input
   const clarificationContext = forceProceed ? undefined : input.clarificationContext
 
-  const requestStart = Date.now()
 
   // ── Phase 1: Classify + Plan in parallel (both Haiku — fast) ──────────────
   const [{ mode, confidence: modeConfidence }, plan] = await Promise.all([
@@ -108,7 +107,6 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
       : researchPrompt
   }
 
-  console.log('[research] mode:', mode, `(${modeConfidence}% confidence) | queries:`, searchQueries.length)
 
   // Claude pre-pass: only for decision modes that need multi-angle reasoning.
   // perspectives (ECHO) removed — structured perspectiveSides output doesn't need it.
@@ -192,13 +190,8 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
       const snippetsPromise = extractSourceSnippets(citationRefs).catch(() => [] as Awaited<ReturnType<typeof extractSourceSnippets>>)
       sourceSnippets = await Promise.race([snippetsPromise, new Promise<[]>(resolve => setTimeout(() => resolve([]), 1000))])
     }
-    if (sourceSnippets.length > 0) {
-      console.log(`[research] extracted content from ${sourceSnippets.length} sources`)
-    }
   }
 
-  const totalElapsed = Date.now() - requestStart
-  console.log(`[research] ${allCitations.length} sources | ${totalElapsed}ms | mode: ${mode}`)
 
   // ── Prior Research Context ─────────────────────────────────────────────────
   // Skip for agent queries — prior context rarely helps focused single-role output.

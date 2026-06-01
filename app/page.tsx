@@ -19,6 +19,20 @@ import { EliteResearchOutputSchema } from '@/ai/schemas'
 import { getModeCap } from '@/ai/config/modes'
 import { saveSession, loadSessions } from '@/lib/research-memory'
 import type { ClarificationQuestion, TrustScore, QueryMode, EliteResearchOutput } from '@/ai/schemas'
+import { Component, type ReactNode } from 'react'
+
+class OutputErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false }
+  static getDerivedStateFromError() { return { hasError: true } }
+  render() {
+    if (this.state.hasError) return (
+      <div className="rounded-2xl p-6 text-center" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
+        <p className="text-[13px] text-red-400 font-mono">Output rendering error — please try again.</p>
+      </div>
+    )
+    return this.props.children
+  }
+}
 
 type AppState = 'idle' | 'checking' | 'questioning' | 'researching' | 'done'
 type QuestionEntry = { question: ClarificationQuestion; answer: string }
@@ -695,11 +709,13 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
               <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
             </div>
             <div className="opacity-50">
-              <StructuredOutputView
-                data={entry.result}
-                isLoading={false}
-                onGoDeeper={handleGoDeeper}
-              />
+              <OutputErrorBoundary>
+                <StructuredOutputView
+                  data={entry.result}
+                  isLoading={false}
+                  onGoDeeper={handleGoDeeper}
+                />
+              </OutputErrorBoundary>
             </div>
             <div className="h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
           </motion.div>
@@ -724,11 +740,13 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
                   <div className="h-px flex-1" style={{ background: 'rgba(255,255,255,0.06)' }} />
                 </div>
               )}
-              <StructuredOutputView
-                data={object as Partial<EliteResearchOutput>}
-                isLoading={isLoading}
-                onGoDeeper={handleGoDeeper}
-              />
+              <OutputErrorBoundary>
+                <StructuredOutputView
+                  data={object as Partial<EliteResearchOutput>}
+                  isLoading={isLoading}
+                  onGoDeeper={handleGoDeeper}
+                />
+              </OutputErrorBoundary>
             </motion.div>
           )}
         </AnimatePresence>
