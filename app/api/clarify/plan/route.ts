@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     const modeInstructions = getModeInstructions(mode, cap)
 
     const result = await generateText({
-      model: anthropic('claude-sonnet-4-5'),
+      model: anthropic('claude-haiku-4-5'),
       system: `${description}
 
 You are generating targeted clarifying questions to get the context needed to produce a highly personalized expert answer.

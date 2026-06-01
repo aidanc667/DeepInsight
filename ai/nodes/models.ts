@@ -100,7 +100,7 @@ export async function callClaude(prompt: string): Promise<ModelResponse> {
     model: anthropic('claude-sonnet-4-5'),
     system: 'You are an expert research analyst. Give structured analysis: key facts, causal relationships, logical inconsistencies, and areas of genuine uncertainty. Be specific — cite numbers, names, dates. Flag anything the user should verify. Be thorough but concise.',
     prompt,
-    maxOutputTokens: 1100,
+    maxOutputTokens: 800,
   })
   return {
     modelId: 'claude',

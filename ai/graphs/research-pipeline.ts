@@ -116,7 +116,7 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
 
   // Gemini live search: skip for SAGE (explainer) and ECHO (perspectives) —
   // they need reasoning over knowledge, not real-time web data.
-  const GEMINI_SEARCH_MODES = new Set(['decision', 'research', 'intelligence', 'competitive', 'action'])
+  const GEMINI_SEARCH_MODES = new Set(['decision', 'research', 'intelligence', 'competitive', 'action', 'forecast'])
   const emptyClaudeResponse  = { modelId: 'claude' as const, rawText: '', citations: [], latencyMs: 0 }
   const emptyGeminiResponse  = { modelId: 'gemini' as const, rawText: '', citations: [], latencyMs: 0 }
 
@@ -220,10 +220,10 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
     ? anthropic('claude-haiku-4-5')
     : anthropic('claude-sonnet-4-5')
 
-  const maxTokens = mode === 'decision' ? 3200
-    : agentSelected ? 1400
-    : mode === 'research' || mode === 'intelligence' || mode === 'explainer' ? 1600
-    : 1800
+  const maxTokens = mode === 'decision' ? 2400
+    : agentSelected ? 900
+    : mode === 'research' || mode === 'intelligence' || mode === 'explainer' ? 1300
+    : 1500
 
   const synthesisResult = streamText({
     model: synthesisModel,

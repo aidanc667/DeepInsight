@@ -541,13 +541,6 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
               />
             </div>
 
-            {/* Agent cards */}
-            <AgentCards
-              onSelect={useAgentSelect}
-              selectedAgent={selectedAgent}
-              disabled={isInputDisabled}
-            />
-
             {/* CTA row */}
             <div className="flex items-center gap-3 pt-1">
               <button
@@ -562,9 +555,15 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
                   <><Sparkles className="h-3.5 w-3.5" />Run Research</>
                 )}
               </button>
-
-<span className="ml-auto text-[10px] font-mono text-slate-700 hidden sm:block tracking-wider">⌘ ↵</span>
+              <span className="ml-auto text-[10px] font-mono text-slate-700 hidden sm:block tracking-wider">⌘ ↵</span>
             </div>
+
+            {/* Agent cards */}
+            <AgentCards
+              onSelect={useAgentSelect}
+              selectedAgent={selectedAgent}
+              disabled={isInputDisabled}
+            />
 
           </div>
         </motion.section>
