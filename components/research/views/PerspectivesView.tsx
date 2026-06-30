@@ -2,7 +2,7 @@
 
 import { motion } from 'motion/react'
 import { MessageSquare, CheckCircle2 } from 'lucide-react'
-import { Card, Label } from './primitives'
+import { Card } from './primitives'
 import type { StructuredOutput } from '@/ai/output/structured-output'
 
 export function PerspectivesView({ data, delay }: { data: NonNullable<StructuredOutput['perspectives']>; delay: number }) {
