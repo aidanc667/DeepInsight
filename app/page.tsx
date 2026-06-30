@@ -343,7 +343,7 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
     startResearch(ctx || undefined)
   }, [questionHistory, startResearch])
 
-  const handleContinueResearch = useCallback(() => {
+  const handleContinueResearch = useCallback(async () => {
     const newPrompt = followUpText.trim()
     if (!newPrompt) return
 
@@ -384,7 +384,8 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
     setTrustScore(null)
     setDeepResearch(false)
     setAppState('researching')
-    loadSessions().then(prior => {
+    try {
+      const prior = await loadSessions()
       submit({
         prompt:               newPrompt,
         clarificationContext: prevParts,
@@ -392,7 +393,15 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
         mode:                 detectedMode,
         priorSessions:        prior.slice(0, 10),
       })
-    })
+    } catch {
+      submit({
+        prompt:               newPrompt,
+        clarificationContext: prevParts,
+        forceProceed:         true,
+        mode:                 detectedMode,
+        priorSessions:        [],
+      })
+    }
   }, [followUpText, prompt, currentPromptLabel, object, detectedMode, submit])
 
   const handleGoDeeper = useCallback((question: string) => {
