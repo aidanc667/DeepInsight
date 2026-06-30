@@ -1,6 +1,7 @@
 'use client'
 
 import { useClerk } from '@clerk/nextjs'
+import { useUser } from '@clerk/nextjs'
 import { LogOut, Plus, FlaskConical } from 'lucide-react'
 import type { QueryMode } from '@/ai/schemas'
 
@@ -31,13 +32,14 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSessions, onRerun }: SidebarProps) {
-  const { signOut, user } = useClerk()
+  const { signOut } = useClerk()
+  const { user } = useUser()
 
   return (
     <aside
       className="flex flex-col shrink-0 overflow-hidden"
       style={{
-        width: 220,
+        width: '220px',
         background: '#111827',
         borderRight: '1px solid rgba(255,255,255,0.06)',
       }}
@@ -96,13 +98,18 @@ export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSession
                   background: isActive ? 'rgba(255,255,255,0.08)' : 'transparent',
                   color: isActive ? '#e2e8f0' : '#94a3b8',
                 }}
+                aria-pressed={isActive}
                 onMouseEnter={e => {
-                  if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
-                  if (!isActive) e.currentTarget.style.color = '#c8d6e5'
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+                    e.currentTarget.style.color = '#c8d6e5'
+                  }
                 }}
                 onMouseLeave={e => {
-                  if (!isActive) e.currentTarget.style.background = 'transparent'
-                  if (!isActive) e.currentTarget.style.color = '#94a3b8'
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'transparent'
+                    e.currentTarget.style.color = '#94a3b8'
+                  }
                 }}
               >
                 <div
@@ -132,6 +139,7 @@ export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSession
                 onClick={() => onRerun(session)}
                 className="w-full px-2.5 py-2 rounded-md text-left transition-colors"
                 style={{ background: 'transparent' }}
+                aria-label={session.prompt}
                 onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
@@ -170,6 +178,7 @@ export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSession
           onMouseEnter={e => (e.currentTarget.style.color = '#94a3b8')}
           onMouseLeave={e => (e.currentTarget.style.color = '#4a6a8a')}
           title="Sign out"
+          aria-label="Sign out"
         >
           <LogOut className="h-3.5 w-3.5" />
         </button>
