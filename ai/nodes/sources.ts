@@ -78,11 +78,38 @@ export interface SourceSnippet {
 }
 
 // Block fetches to private/loopback/link-local ranges to prevent SSRF
+// Private/reserved hostname patterns for SSRF protection.
+const LOOPBACK          = /^(localhost|127\.)/i
+const PRIVATE_10        = /^10\./
+const PRIVATE_172       = /^172\.(1[6-9]|2\d|3[01])\./
+const PRIVATE_192       = /^192\.168\./
+const LINK_LOCAL        = /^169\.254\./
+const CGNAT             = /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./ // 100.64.0.0/10
+const IPV6_LOOPBACK     = /^::1$/
+const IPV6_UNIQUE_LOCAL = /^fc[0-9a-f][0-9a-f]:/i
+const IPV6_LINK_LOCAL   = /^fe[89ab][0-9a-f]:/i
+const ANY_ADDR          = /^0\.0\.0\.0/
+
 function isSafeUrl(url: string): boolean {
   try {
     const { protocol, hostname } = new URL(url)
     if (protocol !== 'https:' && protocol !== 'http:') return false
-    if (/^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|::1$|fc00:|fe80:)/i.test(hostname)) return false
+    // Reject decimal-encoded IPs (e.g. http://2130706433/ → 127.0.0.1)
+    if (/^\d+$/.test(hostname)) return false
+    // Reject bare hostnames with no dot (catches localhost variants not matched above)
+    if (!hostname.includes('.') && !hostname.startsWith('[')) return false
+    if (
+      LOOPBACK.test(hostname) ||
+      PRIVATE_10.test(hostname) ||
+      PRIVATE_172.test(hostname) ||
+      PRIVATE_192.test(hostname) ||
+      LINK_LOCAL.test(hostname) ||
+      CGNAT.test(hostname) ||
+      ANY_ADDR.test(hostname) ||
+      IPV6_LOOPBACK.test(hostname) ||
+      IPV6_UNIQUE_LOCAL.test(hostname) ||
+      IPV6_LINK_LOCAL.test(hostname)
+    ) return false
     return true
   } catch {
     return false
