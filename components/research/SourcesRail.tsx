@@ -70,13 +70,8 @@ export function SourcesRail({ sources }: SourcesRailProps) {
         <p className="text-[9px] font-semibold tracking-[0.1em] uppercase" style={{ color: '#94a3b8' }}>
           Sources
         </p>
-        <p className="text-[10px] mt-1" style={{ color: '#64748b' }}>
-          <div>{sorted.length} verified</div>
-          <div className="text-[9px] mt-0.5">
-            {highCount > 0 && <span style={{ color: '#1a7c4a' }}>{highCount} high</span>}
-            {highCount > 0 && mediumCount > 0 && <span style={{ color: '#64748b' }}> · </span>}
-            {mediumCount > 0 && <span style={{ color: '#b8860b' }}>{mediumCount} med</span>}
-          </div>
+        <p className="text-[10px] mt-0.5" style={{ color: '#64748b' }}>
+          {sorted.length} verified · {highCount} high-cred
         </p>
       </div>
 
@@ -118,7 +113,7 @@ export function SourcesRail({ sources }: SourcesRailProps) {
               </div>
 
               {source.keyInsight && (
-                <p className="text-[9px] line-clamp-2 leading-snug" style={{ color: '#64748b' }}>
+                <p className="text-[9px] line-clamp-3 leading-snug" style={{ color: '#64748b' }}>
                   {source.keyInsight}
                 </p>
               )}
