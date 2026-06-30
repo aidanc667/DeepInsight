@@ -1,0 +1,91 @@
+'use client'
+
+import { Lightbulb, CheckCircle2 } from 'lucide-react'
+import { Card, Label, ConfidencePip } from './primitives'
+import type { StructuredOutput } from '@/ai/output/structured-output'
+
+export function EvidenceAndInsights({ data, delay }: { data: StructuredOutput['evidenceAndInsights']; delay: number }) {
+  const { overview, keyFindings, expertConsensus } = data
+  if (!overview && keyFindings.length === 0 && !expertConsensus) return null
+
+  return (
+    <div className="space-y-3.5">
+      {overview && (
+        <Card delay={delay}>
+          <div className="p-6">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="flex items-center justify-center h-6 w-6 rounded-md"
+                style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                <Lightbulb className="h-3 w-3 text-violet-400" />
+              </div>
+              <Label>Evidence &amp; Insights</Label>
+            </div>
+            <div className="space-y-3">
+              {overview.split('\n').filter(Boolean).map((para, i) => (
+                <p key={i} className="text-[14px] text-slate-300 leading-[1.72]">{para}</p>
+              ))}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {keyFindings.length > 0 && (
+        <Card delay={delay + 0.015}>
+          <div className="p-5">
+            <div className="flex items-center gap-2.5 mb-4">
+              <Label>Key Findings</Label>
+              <span className="ml-auto font-mono text-[10px] text-slate-700">{keyFindings.length}</span>
+            </div>
+            <div className="space-y-2">
+              {keyFindings.map((f, i) => (
+                <div key={i} className="p-3.5 rounded-xl"
+                  style={{ background: 'rgba(255,255,255,0.022)', border: '1px solid rgba(255,255,255,0.052)' }}>
+                  <div className="flex items-start gap-3">
+                    <div className="flex items-center justify-center h-5 w-5 rounded-md shrink-0 mt-0.5"
+                      style={{ background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.2)' }}>
+                      <span className="font-mono text-[9px] font-bold text-violet-400">{i + 1}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13.5px] text-slate-300 leading-[1.65]">{f.finding}</p>
+                      {f.sourceContext && (
+                        <p className="text-[11px] text-slate-600 mt-1.5 italic">{f.sourceContext}</p>
+                      )}
+                      {f.attributedSources && f.attributedSources.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {f.attributedSources.map((domain, j) => (
+                            <span key={j}
+                              className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono tracking-wide"
+                              style={{ background: 'rgba(6,182,212,0.07)', border: '1px solid rgba(6,182,212,0.18)', color: '#64748b' }}>
+                              {domain}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {f.confidence && <ConfidencePip level={f.confidence} />}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {expertConsensus && (
+        <Card delay={delay + 0.015}>
+          <div className="p-5">
+            <div className="flex items-center gap-2 mb-3.5">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+              <Label>Expert Consensus</Label>
+            </div>
+            <div className="space-y-2.5">
+              {expertConsensus.split('\n').filter(Boolean).map((para, i) => (
+                <p key={i} className="text-[13.5px] text-slate-300 leading-[1.65]">{para}</p>
+              ))}
+            </div>
+          </div>
+        </Card>
+      )}
+    </div>
+  )
+}
