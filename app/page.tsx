@@ -18,6 +18,7 @@ import { AgentCards } from '@/components/research/AgentCards'
 import { EliteResearchOutputSchema } from '@/ai/schemas'
 import { getModeCap } from '@/ai/config/modes'
 import { saveSession, loadSessions } from '@/lib/research-memory'
+import { computeTrustScore } from '@/lib/trust-score'
 import type { ClarificationQuestion, TrustScore, QueryMode, EliteResearchOutput } from '@/ai/schemas'
 import { Component, type ReactNode } from 'react'
 
@@ -138,36 +139,10 @@ function ResearchApp({ onNewChat, onSignOut }: { onNewChat: () => void; onSignOu
       setAppState('done')
 
       // Compute trust score regardless — use safe defaults for any missing fields
-      const sourcesCount    = result?.sourceRegistry?.filter(s => s?.url)?.length ?? 0
-      const highCredSources = result?.sourceRegistry?.filter(s => s?.credibilityTier === 'high')?.length ?? 0
-      const medCredSources  = result?.sourceRegistry?.filter(s => s?.credibilityTier === 'medium')?.length ?? 0
-      const modelConfidence = result?.confidence ?? 50
-
-      const rawQuality    = (highCredSources * 1.0) + (medCredSources * 0.6) +
-                            ((sourcesCount - highCredSources - medCredSources) * 0.2)
-      const citationScore = sourcesCount > 0 ? Math.min(rawQuality / sourcesCount, 1) : 0.3
-      const coverageScore = Math.min(sourcesCount / 10, 1)
-      const credRatio     = sourcesCount > 0 ? highCredSources / sourcesCount : 0
-      const recencyScore  = 0.45 + credRatio * 0.45
-
-      const T = (0.30 * modelConfidence) +
-                (0.30 * citationScore * 100) +
-                (0.25 * coverageScore * 100) +
-                (0.15 * recencyScore  * 100)
-
-      const finalScore = Math.round(Math.min(100, Math.max(0, T)))
-      const alertLevel = finalScore >= 72 ? 'green' : finalScore >= 45 ? 'orange' : 'red'
-
-      setTrustScore({
-        modelConfidence: Math.round(modelConfidence),
-        citationScore,
-        recencyScore,
-        coverageScore: Math.round(coverageScore * 100),
-        finalScore,
-        alertLevel,
-      })
+      setTrustScore(computeTrustScore(result ?? undefined))
 
       if (result) {
+        const sourcesCount = result.sourceRegistry?.filter(s => s?.url)?.length ?? 0
         const iterCount = sourcesCount > 8 ? 2 : 1
         setDeepResearch(iterCount > 1)
         void saveSession({
