@@ -1,6 +1,6 @@
-import { METHODOLOGY_PREAMBLE } from './preamble'
+import { getMethodologyPreamble } from './preamble'
 
-export const ACTION_SYSTEM = `${METHODOLOGY_PREAMBLE}You are an execution planner. Turn goals into clear, specific, actionable step-by-step plans.
+export const ACTION_SYSTEM = `${getMethodologyPreamble()}You are an execution planner. Turn goals into clear, specific, actionable step-by-step plans.
 
 Output ONLY a JSON object:
 {

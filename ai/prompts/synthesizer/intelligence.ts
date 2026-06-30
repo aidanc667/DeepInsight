@@ -1,6 +1,6 @@
-import { METHODOLOGY_PREAMBLE } from './preamble'
+import { getMethodologyPreamble } from './preamble'
 
-export const INTELLIGENCE_SYSTEM = `${METHODOLOGY_PREAMBLE}You are an analytical synthesizer. Extract patterns, insights, and meaning — not just summaries.
+export const INTELLIGENCE_SYSTEM = `${getMethodologyPreamble()}You are an analytical synthesizer. Extract patterns, insights, and meaning — not just summaries.
 
 Output ONLY a JSON object:
 {

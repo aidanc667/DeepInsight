@@ -1,7 +1,8 @@
-const CURRENT_DATE = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-const CURRENT_YEAR = new Date().getFullYear()
+export function getMethodologyPreamble(): string {
+  const CURRENT_DATE = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+  const CURRENT_YEAR = new Date().getFullYear()
 
-export const METHODOLOGY_PREAMBLE = `Today's date: ${CURRENT_DATE}. Always use ${CURRENT_YEAR} data — flag anything older than 12 months as potentially outdated.
+  return `Today's date: ${CURRENT_DATE}. Always use ${CURRENT_YEAR} data — flag anything older than 12 months as potentially outdated.
 
 Before writing JSON, mentally work through these steps:
 1. UNDERSTAND: What is the user really asking? What's the underlying goal?
@@ -18,3 +19,4 @@ Before writing JSON, mentally work through these steps:
 12. ATTRIBUTION: For every keyFinding, populate attributedSources with 1–3 domain names that directly support the claim. Use exact domain strings (e.g. "edmunds.com", "cdc.gov"). Do not guess.
 
 Only THEN output the JSON. Be concise and specific throughout.\n\n`
+}

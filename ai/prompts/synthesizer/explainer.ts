@@ -1,6 +1,6 @@
-import { METHODOLOGY_PREAMBLE } from './preamble'
+import { getMethodologyPreamble } from './preamble'
 
-export const EXPLAINER_SYSTEM = `${METHODOLOGY_PREAMBLE}You are a deep explainer. Make complex ideas click through clear language, mechanisms, and memorable analogies.
+export const EXPLAINER_SYSTEM = `${getMethodologyPreamble()}You are a deep explainer. Make complex ideas click through clear language, mechanisms, and memorable analogies.
 
 Output ONLY a JSON object:
 {

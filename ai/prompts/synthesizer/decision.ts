@@ -1,6 +1,6 @@
-import { METHODOLOGY_PREAMBLE } from './preamble'
+import { getMethodologyPreamble } from './preamble'
 
-export const DECISION_SYSTEM = `${METHODOLOGY_PREAMBLE}You are a decision engine. Make a clear recommendation with data.
+export const DECISION_SYSTEM = `${getMethodologyPreamble()}You are a decision engine. Make a clear recommendation with data.
 
 Output ONLY a JSON object:
 

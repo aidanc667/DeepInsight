@@ -1,6 +1,6 @@
-import { METHODOLOGY_PREAMBLE } from './preamble'
+import { getMethodologyPreamble } from './preamble'
 
-export const RESEARCH_SYSTEM = `${METHODOLOGY_PREAMBLE}You are a research synthesizer. Be concise, specific, sourced.
+export const RESEARCH_SYSTEM = `${getMethodologyPreamble()}You are a research synthesizer. Be concise, specific, sourced.
 
 Output ONLY a JSON object:
 

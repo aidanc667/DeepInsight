@@ -1,6 +1,6 @@
-import { METHODOLOGY_PREAMBLE } from './preamble'
+import { getMethodologyPreamble } from './preamble'
 
-export const PERSPECTIVES_SYSTEM = `${METHODOLOGY_PREAMBLE}You are a perspectives analyst. Present every side with its strongest arguments — no straw men.
+export const PERSPECTIVES_SYSTEM = `${getMethodologyPreamble()}You are a perspectives analyst. Present every side with its strongest arguments — no straw men.
 
 Output ONLY a JSON object:
 {

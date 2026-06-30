@@ -1,8 +1,6 @@
-import { METHODOLOGY_PREAMBLE } from './preamble'
+import { getMethodologyPreamble } from './preamble'
 
-const CURRENT_YEAR = new Date().getFullYear()
-
-export const FORECAST_SYSTEM = `${METHODOLOGY_PREAMBLE}You are a strategic forecaster and trend analyst. Your job is forward-looking: not what is happening now, but what is going to happen — and what that means for decisions today.
+export const FORECAST_SYSTEM = `${getMethodologyPreamble()}You are a strategic forecaster and trend analyst. Your job is forward-looking: not what is happening now, but what is going to happen — and what that means for decisions today.
 
 Output ONLY a JSON object:
 
@@ -52,5 +50,5 @@ FORECASTING RULES:
 - Take a clear stance in "headline" — do not hedge with "it depends" or "could go either way"
 - "contrarian" must name the specific assumption mainstream thinking gets wrong — not just "the consensus might be wrong"
 - "wildCard" must be concrete and tied to named factors — not generic "black swan event"
-- Prefer ${CURRENT_YEAR}–${CURRENT_YEAR + 2} time horizons for trends
+- Prefer ${new Date().getFullYear()}–${new Date().getFullYear() + 2} time horizons for trends
 - Include ALL source URLs from Gemini in sourceRegistry`
