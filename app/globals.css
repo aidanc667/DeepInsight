@@ -1,31 +1,101 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-/* ── New color tokens ──────────────────────────────────────── */
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* ── Light document theme ──────────────────────────────────────── */
 :root {
+  /* New design tokens */
   --bg-main:        #f8f5f0;
   --bg-sidebar:     #111827;
   --bg-sources:     #f0ece4;
   --border-main:    #e8e2d9;
   --border-sources: #e0dbd0;
-
   --text-body:      #1e293b;
   --text-heading:   #111827;
   --text-muted:     #64748b;
   --text-label:     #94a3b8;
-
-  --accent:         #1e3a5f;
+  --accent-ink:     #1e3a5f;
   --accent-light:   #6b8cae;
 
-  /* shadcn/ui compat — keep oklch only where Tailwind requires */
-  --background:     oklch(0.98 0.005 80);
-  --foreground:     oklch(0.18 0.02 240);
-  --primary:        oklch(0.28 0.08 240);
-  --primary-foreground: oklch(1 0 0);
-  --muted:          oklch(0.94 0.005 80);
-  --muted-foreground: oklch(0.50 0.02 240);
-  --border:         oklch(0.88 0.01 80);
-  --ring:           oklch(0.28 0.08 240);
-  --radius:         0.5rem;
+  /* shadcn/ui semantic tokens (light theme) */
+  --background:            oklch(0.98 0.005 80);
+  --foreground:            oklch(0.18 0.02 240);
+  --card:                  oklch(1 0 0);
+  --card-foreground:       oklch(0.18 0.02 240);
+  --popover:               oklch(1 0 0);
+  --popover-foreground:    oklch(0.18 0.02 240);
+  --primary:               oklch(0.28 0.08 240);
+  --primary-foreground:    oklch(1 0 0);
+  --secondary:             oklch(0.94 0.005 80);
+  --secondary-foreground:  oklch(0.18 0.02 240);
+  --muted:                 oklch(0.94 0.005 80);
+  --muted-foreground:      oklch(0.50 0.02 240);
+  --accent:                oklch(0.94 0.005 80);
+  --accent-foreground:     oklch(0.18 0.02 240);
+  --destructive:           oklch(0.63 0.22 25);
+  --border:                oklch(0.88 0.01 80);
+  --input:                 oklch(0.88 0.01 80);
+  --ring:                  oklch(0.28 0.08 240 / 0.4);
+  --chart-1:               oklch(0.55 0.18 240);
+  --chart-2:               oklch(0.65 0.15 160);
+  --chart-3:               oklch(0.70 0.16 60);
+  --chart-4:               oklch(0.60 0.18 30);
+  --chart-5:               oklch(0.55 0.15 300);
+  --radius:                0.5rem;
+  --sidebar:               oklch(0.15 0.02 240);
+  --sidebar-foreground:    oklch(0.88 0.01 240);
+  --sidebar-primary:       oklch(0.28 0.08 240);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent:        oklch(0.20 0.02 240);
+  --sidebar-accent-foreground: oklch(0.88 0.01 240);
+  --sidebar-border:        oklch(1 0 0 / 0.06);
+  --sidebar-ring:          oklch(0.28 0.08 240);
 }
 
 /* ── Base ──────────────────────────────────────────────────── */
@@ -43,7 +113,6 @@ body {
 
 /* ── Report typography helpers ─────────────────────────────── */
 
-/* Georgia body copy */
 .report-body {
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 15px;
@@ -51,7 +120,6 @@ body {
   color: var(--text-body);
 }
 
-/* Section label: 9px caps with hairline rule */
 .report-section-label {
   font-size: 9px;
   font-weight: 600;
@@ -69,7 +137,6 @@ body {
   background: var(--border-main);
 }
 
-/* Hairline divider */
 .report-divider {
   height: 1px;
   background: var(--border-main);
