@@ -1,11 +1,21 @@
 'use client'
 
-import { ExternalLink } from 'lucide-react'
-import { CredibilityPip } from './views/primitives'
 import type { SourceRegistryItem } from '@/ai/schemas'
 
 interface SourcesRailProps {
   sources: SourceRegistryItem[]
+}
+
+function tierBadge(tier: string | undefined) {
+  if (!tier) return null
+  const t = tier.toLowerCase()
+  if (t === 'high') {
+    return { label: 'HIGH', bg: '#e8f0e8', text: '#1a4a1a', border: '#b8d8b8' }
+  }
+  if (t === 'medium') {
+    return { label: 'MED', bg: '#fef3cd', text: '#7a5a00', border: 'transparent' }
+  }
+  return { label: 'LOW', bg: '#f0ece4', text: '#64748b', border: 'transparent' }
 }
 
 export function SourcesRail({ sources }: SourcesRailProps) {
@@ -14,13 +24,13 @@ export function SourcesRail({ sources }: SourcesRailProps) {
       <aside
         className="flex flex-col shrink-0 overflow-hidden"
         style={{
-          width: 200,
-          background: '#0d192a',
-          borderLeft: '1px solid rgba(255,255,255,0.072)',
+          width: '200px',
+          background: '#f0ece4',
+          borderLeft: '1px solid #e0dbd0',
         }}
       >
-        <div className="px-3 pt-4 pb-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.072)' }}>
-          <p className="text-[9px] font-semibold tracking-[0.2em] uppercase" style={{ color: '#94a3b8' }}>
+        <div className="px-3 pt-4 pb-2" style={{ borderBottom: '1px solid #e0dbd0' }}>
+          <p className="text-[9px] font-semibold tracking-[0.1em] uppercase" style={{ color: '#94a3b8' }}>
             Sources
           </p>
           <p className="text-[10px] mt-0.5" style={{ color: '#64748b' }}>
@@ -50,64 +60,77 @@ export function SourcesRail({ sources }: SourcesRailProps) {
     <aside
       className="flex flex-col shrink-0 overflow-hidden"
       style={{
-        width: 200,
-        background: '#0d192a',
-        borderLeft: '1px solid rgba(255,255,255,0.072)',
+        width: '200px',
+        background: '#f0ece4',
+        borderLeft: '1px solid #e0dbd0',
       }}
     >
       {/* Header */}
-      <div className="px-3 pt-4 pb-2" style={{ borderBottom: '1px solid rgba(255,255,255,0.072)' }}>
-        <p className="text-[9px] font-semibold tracking-[0.2em] uppercase" style={{ color: '#94a3b8' }}>
+      <div className="px-3 pt-4 pb-2" style={{ borderBottom: '1px solid #e0dbd0' }}>
+        <p className="text-[9px] font-semibold tracking-[0.1em] uppercase" style={{ color: '#94a3b8' }}>
           Sources
         </p>
-        <p className="text-[10px] mt-1 space-y-0.5" style={{ color: '#64748b' }}>
+        <p className="text-[10px] mt-1" style={{ color: '#64748b' }}>
           <div>{sorted.length} verified</div>
           <div className="text-[9px] mt-0.5">
-            {highCount > 0 && <span style={{ color: '#34d399' }}>{highCount} high</span>}
+            {highCount > 0 && <span style={{ color: '#1a7c4a' }}>{highCount} high</span>}
             {highCount > 0 && mediumCount > 0 && <span style={{ color: '#64748b' }}> · </span>}
-            {mediumCount > 0 && <span style={{ color: '#fbbf24' }}>{mediumCount} med</span>}
+            {mediumCount > 0 && <span style={{ color: '#b8860b' }}>{mediumCount} med</span>}
           </div>
         </p>
       </div>
 
       {/* Source cards */}
       <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1.5">
-        {sorted.map((source, i) => (
-          <a
-            key={i}
-            href={source.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-col gap-1 p-2 rounded-md transition-colors"
-            style={{
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              textDecoration: 'none',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
-          >
-            <div className="flex items-center gap-1.5">
-              <CredibilityPip tier={source.credibilityTier} />
-              <span className="text-[10px] text-slate-400 hover:text-slate-300 truncate transition-colors flex-1 font-mono">
-                {source.domain}
-              </span>
-              <ExternalLink className="h-2.5 w-2.5 text-slate-600 hover:text-slate-400 shrink-0 transition-colors" />
-            </div>
+        {sorted.map((source, i) => {
+          const badge = tierBadge(source.credibilityTier)
+          return (
+            <a
+              key={i}
+              href={source.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col gap-1 p-2 rounded-md transition-colors"
+              style={{
+                background: 'white',
+                border: '1px solid #e8e2d9',
+                textDecoration: 'none',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = '#c8bfb0')}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = '#e8e2d9')}
+            >
+              <div className="flex items-center gap-1.5">
+                {badge && (
+                  <span
+                    className="inline-block text-[8px] font-mono px-1.5 py-0.5 rounded shrink-0"
+                    style={{
+                      background: badge.bg,
+                      color: badge.text,
+                      border: badge.border !== 'transparent' ? `1px solid ${badge.border}` : undefined,
+                    }}
+                  >
+                    {badge.label}
+                  </span>
+                )}
+                <span className="text-[10px] font-mono truncate flex-1" style={{ color: '#1e3a5f' }}>
+                  {source.domain}
+                </span>
+              </div>
 
-            {source.keyInsight && (
-              <p className="text-[9px] text-slate-500 leading-snug line-clamp-2">
-                {source.keyInsight}
-              </p>
-            )}
+              {source.keyInsight && (
+                <p className="text-[9px] line-clamp-2 leading-snug" style={{ color: '#64748b' }}>
+                  {source.keyInsight}
+                </p>
+              )}
 
-            {source.extractedSnippet && (
-              <p className="text-[8.5px] text-slate-600 leading-snug italic line-clamp-1 px-0.5">
-                &ldquo;{source.extractedSnippet.slice(0, 100)}&hellip;&rdquo;
-              </p>
-            )}
-          </a>
-        ))}
+              {source.extractedSnippet && (
+                <p className="text-[8.5px] leading-snug italic line-clamp-1 px-0.5" style={{ color: '#94a3b8' }}>
+                  &ldquo;{source.extractedSnippet.slice(0, 100)}&hellip;&rdquo;
+                </p>
+              )}
+            </a>
+          )
+        })}
       </div>
     </aside>
   )
