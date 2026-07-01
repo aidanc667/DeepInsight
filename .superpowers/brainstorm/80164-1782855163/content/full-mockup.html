@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeepInsight — Full Layout Preview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #e8e4de; font-family: -apple-system, 'Geist', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+
+  .browser-chrome { background: #2a2a2a; border-radius: 10px; overflow: hidden; width: 100%; max-width: 960px; box-shadow: 0 32px 80px rgba(0,0,0,0.45); }
+  .browser-bar { background: #3a3a3a; padding: 8px 12px; display: flex; align-items: center; gap: 8px; }
+  .browser-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .url-bar { flex: 1; background: #2a2a2a; border-radius: 4px; padding: 4px 10px; font-size: 10px; color: #888; margin: 0 12px; }
+
+  .app { display: flex; height: 580px; background: #f8f5f0; }
+
+  /* ── Sidebar ── */
+  .sidebar { width: 220px; background: #111827; display: flex; flex-direction: column; flex-shrink: 0; border-right: 1px solid rgba(255,255,255,0.06); }
+  .sidebar-logo { padding: 18px 16px 12px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .logo-mark { width: 22px; height: 22px; background: #1e3a5f; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; color: #7aaccc; letter-spacing: -.02em; }
+  .logo-text { font-size: 11px; font-weight: 700; color: #e2e8f0; letter-spacing: -.01em; }
+  .logo-badge { margin-left: auto; font-size: 8px; color: #4a6a8a; letter-spacing: .08em; }
+
+  .sidebar-section { padding: 14px 12px 6px; }
+  .sidebar-label { font-size: 9px; color: #4a6a8a; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; padding: 0 4px; }
+  .mode-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 5px; cursor: pointer; transition: background .1s; margin-bottom: 1px; }
+  .mode-item.active { background: rgba(255,255,255,0.08); }
+  .mode-item:hover { background: rgba(255,255,255,0.05); }
+  .mode-icon { width: 14px; height: 14px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 8px; flex-shrink: 0; }
+  .mode-name { font-size: 11px; color: #94a3b8; }
+  .mode-item.active .mode-name { color: #e2e8f0; }
+  .mode-tag { margin-left: auto; font-size: 8px; color: #4a6a8a; font-family: monospace; letter-spacing: .04em; }
+
+  .sidebar-history { padding: 6px 12px 12px; flex: 1; overflow: hidden; }
+  .history-item { padding: 6px 8px; border-radius: 4px; margin-bottom: 1px; cursor: pointer; }
+  .history-item:hover { background: rgba(255,255,255,0.04); }
+  .history-text { font-size: 10px; color: #4a6a8a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .history-meta { font-size: 8px; color: #2d4a6a; margin-top: 1px; }
+
+  .sidebar-footer { padding: 10px 12px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 8px; }
+  .avatar { width: 24px; height: 24px; border-radius: 50%; background: #1e3a5f; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #7aaccc; font-weight: 700; flex-shrink: 0; }
+  .user-name { font-size: 10px; color: #64748b; }
+
+  /* ── Main content ── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Top bar */
+  .topbar { padding: 12px 20px; border-bottom: 1px solid #e8e2d9; display: flex; align-items: center; gap: 12px; background: #f8f5f0; flex-shrink: 0; }
+  .breadcrumb { font-size: 11px; color: #94a3b8; }
+  .breadcrumb span { color: #1e3a5f; font-weight: 600; }
+  .mode-pill { font-size: 9px; padding: 3px 10px; border-radius: 20px; background: #1e3a5f; color: #c8dce8; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; }
+  .trust-badge { margin-left: auto; display: flex; align-items: center; gap: 5px; font-size: 9px; color: #2d6a2d; background: #e8f0e8; padding: 3px 10px; border-radius: 20px; border: 1px solid #b8d8b8; }
+  .trust-dot { width: 6px; height: 6px; border-radius: 50%; background: #2d6a2d; }
+
+  /* Report area */
+  .report { flex: 1; overflow-y: auto; padding: 28px 36px 28px 32px; }
+  .report-mode-label { font-size: 9px; color: #6b8cae; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 10px; }
+  .report-title { font-size: 22px; color: #111827; font-weight: 700; line-height: 1.25; margin-bottom: 14px; letter-spacing: -.03em; font-family: -apple-system, sans-serif; }
+  .report-lead { font-size: 15px; color: #1e293b; line-height: 1.78; font-family: Georgia, serif; margin-bottom: 18px; }
+  .report-section-label { font-size: 9px; color: #94a3b8; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .report-section-label::after { content: ''; flex: 1; height: 1px; background: #e8e2d9; }
+  .finding { display: flex; gap: 10px; margin-bottom: 12px; }
+  .finding-dot { width: 5px; height: 5px; border-radius: 50%; background: #1e3a5f; margin-top: 7px; flex-shrink: 0; }
+  .finding-text { font-size: 13px; color: #1e293b; line-height: 1.65; font-family: Georgia, serif; }
+  .finding-source { font-size: 9px; color: #6b8cae; font-family: monospace; margin-top: 3px; }
+
+  /* Sources rail */
+  .sources-rail { width: 200px; background: #f0ece4; border-left: 1px solid #e0dbd0; flex-shrink: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .rail-header { padding: 14px 14px 10px; border-bottom: 1px solid #e0dbd0; }
+  .rail-title { font-size: 9px; color: #94a3b8; letter-spacing: .12em; text-transform: uppercase; }
+  .rail-count { font-size: 11px; color: #1e293b; font-weight: 600; margin-top: 2px; }
+  .source-card { margin: 8px 10px 0; background: white; border-radius: 6px; border: 1px solid #e0dbd0; padding: 8px 10px; }
+  .source-domain { font-size: 10px; color: #1e3a5f; font-weight: 600; font-family: monospace; }
+  .source-stars { font-size: 8px; color: #2d6a2d; margin-top: 1px; }
+  .source-snippet { font-size: 9px; color: #64748b; line-height: 1.5; margin-top: 4px; border-top: 1px solid #f0ece4; padding-top: 4px; }
+  .source-tier { display: inline-block; font-size: 7px; padding: 1px 5px; border-radius: 2px; margin-top: 4px; font-family: monospace; }
+  .tier-high { background: #e8f0e8; color: #1a4a1a; }
+  .tier-med { background: #fef3cd; color: #7a5a00; }
+
+  .new-research-btn { margin: 10px; padding: 0 12px; height: 30px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #94a3b8; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; flex-shrink: 0; }
+  .new-research-btn:hover { background: rgba(255,255,255,0.1); }
+
+  .caption { text-align: center; font-size: 10px; color: #999; margin-top: 14px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<div style="width:100%;max-width:960px;">
+  <div class="browser-chrome">
+    <div class="browser-bar">
+      <div class="browser-dot" style="background:#ff5f57;"></div>
+      <div class="browser-dot" style="background:#febc2e;"></div>
+      <div class="browser-dot" style="background:#28c840;"></div>
+      <div class="url-bar">deepinsight.app</div>
+    </div>
+
+    <div class="app">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="sidebar-logo">
+          <div class="logo-mark">DI</div>
+          <div class="logo-text">DeepInsight</div>
+          <div class="logo-badge">BETA</div>
+        </div>
+
+        <button class="new-research-btn">+ New Research</button>
+
+        <div class="sidebar-section">
+          <div class="sidebar-label">Research Modes</div>
+          <div class="mode-item active">
+            <div class="mode-icon" style="background:rgba(107,140,174,0.15);">⬡</div>
+            <div class="mode-name">Analysis</div>
+            <div class="mode-tag">CIPHER</div>
+          </div>
+          <div class="mode-item">
+            <div class="mode-icon" style="background:rgba(107,140,174,0.08);">◎</div>
+            <div class="mode-name">Strategy</div>
+            <div class="mode-tag">AXIOM</div>
+          </div>
+          <div class="mode-item">
+            <div class="mode-icon" style="background:rgba(107,140,174,0.08);">◈</div>
+            <div class="mode-name">Research</div>
+            <div class="mode-tag">NOVA</div>
+          </div>
+          <div class="mode-item">
+            <div class="mode-icon" style="background:rgba(107,140,174,0.08);">◑</div>
+            <div class="mode-name">Perspectives</div>
+            <div class="mode-tag">ECHO</div>
+          </div>
+          <div class="mode-item">
+            <div class="mode-icon" style="background:rgba(107,140,174,0.08);">◧</div>
+            <div class="mode-name">Forecast</div>
+            <div class="mode-tag">VERITAS</div>
+          </div>
+          <div class="mode-item">
+            <div class="mode-icon" style="background:rgba(107,140,174,0.08);">◩</div>
+            <div class="mode-name">Execution</div>
+            <div class="mode-tag">FORGE</div>
+          </div>
+          <div class="mode-item">
+            <div class="mode-icon" style="background:rgba(107,140,174,0.08);">◬</div>
+            <div class="mode-name">Challenge</div>
+            <div class="mode-tag">TITAN</div>
+          </div>
+          <div class="mode-item">
+            <div class="mode-icon" style="background:rgba(107,140,174,0.08);">◭</div>
+            <div class="mode-name">Understanding</div>
+            <div class="mode-tag">SAGE</div>
+          </div>
+        </div>
+
+        <div class="sidebar-history">
+          <div class="sidebar-label" style="padding:0 4px;margin-bottom:6px;">Recent</div>
+          <div class="history-item">
+            <div class="history-text">Fed rate decision analysis</div>
+            <div class="history-meta">Analysis · 2h ago</div>
+          </div>
+          <div class="history-item">
+            <div class="history-text">Should I buy a Tesla Model Y?</div>
+            <div class="history-meta">Strategy · yesterday</div>
+          </div>
+          <div class="history-item">
+            <div class="history-text">How does mRNA vaccine technology work</div>
+            <div class="history-meta">Research · 2 days ago</div>
+          </div>
+        </div>
+
+        <div class="sidebar-footer">
+          <div class="avatar">AC</div>
+          <div class="user-name">aidanc103</div>
+        </div>
+      </div>
+
+      <!-- Main report area -->
+      <div class="main">
+        <div class="topbar">
+          <div class="breadcrumb">Research / <span>Fed Rate Decision 2026</span></div>
+          <div class="mode-pill">CIPHER · Analysis</div>
+          <div class="trust-badge"><div class="trust-dot"></div>Trust 84%</div>
+        </div>
+
+        <div class="report">
+          <div class="report-mode-label">Intelligence Brief · Analysis · June 30, 2026</div>
+          <div class="report-title">Federal Reserve Holds Rates Amid Persistent Core Inflation</div>
+          <div class="report-lead">The Federal Open Market Committee voted 9–3 to hold the federal funds rate at 4.25–4.50% at its June 2026 meeting. Three members dissented in favour of an immediate 25bps cut, citing weakening labour market data. Core PCE remains at 2.4%, above the 2% target but on a sustained downward trajectory.</div>
+
+          <div class="report-section-label">Key Findings</div>
+
+          <div class="finding">
+            <div class="finding-dot"></div>
+            <div>
+              <div class="finding-text">Dissenting votes signal a potential September cut if May CPI prints below 2.8% — the implied threshold from Powell's press conference language.</div>
+              <div class="finding-source">federalreserve.gov · wsj.com</div>
+            </div>
+          </div>
+          <div class="finding">
+            <div class="finding-dot"></div>
+            <div>
+              <div class="finding-text">Labour market softening is the primary concern: non-farm payrolls added 142k in May versus 185k expected, with the unemployment rate edging up to 4.1%.</div>
+              <div class="finding-source">bls.gov · bloomberg.com</div>
+            </div>
+          </div>
+          <div class="finding">
+            <div class="finding-dot"></div>
+            <div>
+              <div class="finding-text">Markets are pricing 2.3 cuts by year-end (fed funds futures), with the first cut odds at 72% for September and 91% for November.</div>
+              <div class="finding-source">cmegroup.com · reuters.com</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sources rail -->
+      <div class="sources-rail">
+        <div class="rail-header">
+          <div class="rail-title">Sources</div>
+          <div class="rail-count">12 verified · 8 high-credibility</div>
+        </div>
+        <div class="source-card">
+          <div class="source-domain">federalreserve.gov</div>
+          <div class="source-stars">★★★★★ Government</div>
+          <div class="source-snippet">"The Committee seeks to achieve maximum employment and inflation at the rate of 2% over the longer run…"</div>
+          <span class="source-tier tier-high">HIGH</span>
+        </div>
+        <div class="source-card">
+          <div class="source-domain">reuters.com</div>
+          <div class="source-stars">★★★★ Major News</div>
+          <div class="source-snippet">"Three dissenting Fed officials argued the labour market had cooled sufficiently…"</div>
+          <span class="source-tier tier-high">HIGH</span>
+        </div>
+        <div class="source-card">
+          <div class="source-domain">wsj.com</div>
+          <div class="source-stars">★★★★ Major News</div>
+          <div class="source-snippet">"Powell signalled the committee needs greater confidence before cutting…"</div>
+          <span class="source-tier tier-med">PAYWALLED</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="caption">This is a static mockup — colours, layout, and typography of the proposed design. Does this look right?</div>
+</div>
+
+<script>
+// Add a simple reply button at the bottom
+</script>
+</body>
+</html>
