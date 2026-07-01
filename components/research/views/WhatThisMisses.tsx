@@ -15,17 +15,17 @@ export function WhatThisMisses({ data, delay }: { data: StructuredOutput['whatTh
         <motion.div
           initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18, delay, ease: [0.16, 1, 0.3, 1] }}
-          className="card-bevel rounded-2xl overflow-hidden"
-          style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.14)' }}
+          className="rounded-xl overflow-hidden"
+          style={{ background: 'white', border: '1px solid rgba(239,68,68,0.2)' }}
         >
           <div className="p-5 flex items-start gap-3">
             <div className="flex items-center justify-center h-6 w-6 rounded-md shrink-0 mt-0.5"
-              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
-              <Shield className="h-3 w-3 text-red-400" />
+              style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.18)' }}>
+              <Shield className="h-3 w-3 text-red-500" />
             </div>
             <div>
-              <p className="text-[9.5px] font-mono tracking-[0.18em] uppercase text-red-400/70 mb-2">What This Misses</p>
-              <p className="text-[13.5px] text-slate-300 leading-[1.65]">{adversarialReview}</p>
+              <p className="report-section-label mb-2">What This Misses</p>
+              <p className="text-[13.5px] text-slate-700 leading-[1.65]">{adversarialReview}</p>
             </div>
           </div>
         </motion.div>
@@ -41,8 +41,8 @@ export function WhatThisMisses({ data, delay }: { data: StructuredOutput['whatTh
             <div className="space-y-2.5">
               {misconceptions.map((m, i) => (
                 <div key={i} className="flex items-start gap-2.5">
-                  <span className="font-mono text-[11px] text-amber-500 mt-0.5 shrink-0">✗</span>
-                  <p className="text-[13.5px] text-slate-400 leading-[1.65]">{m}</p>
+                  <span className="font-mono text-[11px] text-amber-600 mt-0.5 shrink-0">✗</span>
+                  <p className="text-[13.5px] text-slate-600 leading-[1.65]">{m}</p>
                 </div>
               ))}
             </div>

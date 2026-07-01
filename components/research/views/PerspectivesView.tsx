@@ -16,9 +16,6 @@ export function PerspectivesView({ data, delay }: { data: NonNullable<Structured
           {sides.map((side, i) => (
             <Card key={i} delay={delay + i * 0.03}
               style={{
-                background: i % 2 === 0
-                  ? 'linear-gradient(160deg, #0e1a2e 0%, #0a1220 100%)'
-                  : 'linear-gradient(160deg, #1a0e2e 0%, #0a1220 100%)',
                 border: `1px solid ${i % 2 === 0 ? 'rgba(59,130,246,0.2)' : 'rgba(139,92,246,0.2)'}`,
               }}>
               <div className="p-5">
@@ -30,7 +27,7 @@ export function PerspectivesView({ data, delay }: { data: NonNullable<Structured
                     }}>
                     <MessageSquare className="h-3 w-3" style={{ color: i % 2 === 0 ? '#60a5fa' : '#a78bfa' }} />
                   </div>
-                  <span className="text-[11px] font-semibold" style={{ color: i % 2 === 0 ? '#60a5fa' : '#a78bfa' }}>
+                  <span className="text-[11px] font-semibold" style={{ color: i % 2 === 0 ? '#2563eb' : '#7c3aed' }}>
                     {side.label}
                   </span>
                 </div>
@@ -38,8 +35,8 @@ export function PerspectivesView({ data, delay }: { data: NonNullable<Structured
                   {side.points.filter(Boolean).map((point, pi) => (
                     <div key={pi} className="flex items-start gap-2.5">
                       <span className="font-mono text-[11px] mt-0.5 shrink-0"
-                        style={{ color: i % 2 === 0 ? '#3b82f6' : '#8b5cf6' }}>·</span>
-                      <p className="text-[13.5px] text-slate-300 leading-[1.65]">{point}</p>
+                        style={{ color: i % 2 === 0 ? '#1e3a5f' : '#1e3a5f' }}>·</span>
+                      <p className="text-[13.5px] text-slate-700 leading-[1.65]">{point}</p>
                     </div>
                   ))}
                 </div>
@@ -53,17 +50,17 @@ export function PerspectivesView({ data, delay }: { data: NonNullable<Structured
         <motion.div
           initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18, delay: delay + 0.04, ease: [0.16, 1, 0.3, 1] }}
-          className="card-bevel rounded-2xl overflow-hidden"
-          style={{ background: 'rgba(52,211,153,0.04)', border: '1px solid rgba(52,211,153,0.14)' }}
+          className="rounded-xl overflow-hidden"
+          style={{ background: 'white', border: '1px solid rgba(52,211,153,0.25)' }}
         >
           <div className="p-5 flex items-start gap-3">
             <div className="flex items-center justify-center h-6 w-6 rounded-md shrink-0 mt-0.5"
-              style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)' }}>
-              <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+              style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)' }}>
+              <CheckCircle2 className="h-3 w-3 text-emerald-600" />
             </div>
             <div>
-              <p className="text-[9.5px] font-mono tracking-[0.18em] uppercase text-emerald-400/70 mb-2">Common Ground</p>
-              <p className="text-[13.5px] text-slate-300 leading-[1.65]">{commonGround}</p>
+              <p className="report-section-label mb-2">Common Ground</p>
+              <p className="text-[13.5px] text-slate-700 leading-[1.65]">{commonGround}</p>
             </div>
           </div>
         </motion.div>
