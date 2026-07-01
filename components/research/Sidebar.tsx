@@ -220,13 +220,13 @@ export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSession
   return (
     <>
       {/* Desktop: always-visible sidebar in the flex row */}
-      <div className="hidden md:flex shrink-0">
+      <div data-print-hide className="hidden md:flex shrink-0">
         {sidebarContent}
       </div>
 
       {/* Mobile: slide-in overlay */}
       {isOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex">
+        <div data-print-hide className="md:hidden fixed inset-0 z-50 flex">
           {/* Backdrop */}
           <div
             className="absolute inset-0"

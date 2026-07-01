@@ -142,3 +142,46 @@ body {
   background: var(--border-main);
   margin: 20px 0;
 }
+
+/* ── Print / PDF export ──────────────────────────────────────────────────── */
+@media print {
+  /* Hide all chrome — sidebar, header, input, follow-up, loading, buttons */
+  [data-print-hide] { display: none !important; }
+
+  /* Reset layout to full-width single column */
+  body { background: white !important; color: #111 !important; font-size: 11pt; }
+  .flex.h-screen { display: block !important; height: auto !important; overflow: visible !important; }
+
+  /* Content area: full width, no clipping */
+  [data-print-content] {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Chat history entries: all visible, no dimming */
+  [data-print-content] > * { opacity: 1 !important; }
+
+  /* Bentos: white background, black text, visible borders */
+  [data-bento] {
+    background: white !important;
+    color: #111 !important;
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Sources rail: inline at bottom instead of fixed side rail */
+  [data-sources-rail] { display: none !important; }
+  [data-sources-inline] { display: block !important; }
+
+  /* Remove animations / transforms */
+  * { animation: none !important; transition: none !important; transform: none !important; }
+
+  /* Page setup */
+  @page { margin: 1.5cm 2cm; size: A4; }
+}

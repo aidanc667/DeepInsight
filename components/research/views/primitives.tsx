@@ -47,6 +47,7 @@ export function Card({ children, delay = 0, className = '', style }: CardProps) 
       initial={{ opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, delay, ease: [0.16, 1, 0.3, 1] }}
+      data-bento
       className={`rounded-xl overflow-hidden ${className}`}
       style={{ background: 'white', border: '1px solid #e8e2d9', ...style }}
     >

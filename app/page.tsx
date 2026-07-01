@@ -495,6 +495,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
 
       {/* ── Mobile header ─────────────────────────────────────────── */}
       <div
+        data-print-hide
         className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center gap-3 px-4 h-12 shrink-0"
         style={{ background: '#111827', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
@@ -558,6 +559,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
         {/* Topbar — shown when researching or done (desktop only — mobile has its own header) */}
         {(appState === 'done' || appState === 'researching' || isLoading) && (
           <div
+            data-print-hide
             className="hidden md:flex items-center gap-3 px-6 h-12 shrink-0"
             style={{ background: '#f8f5f0', borderBottom: '1px solid #e8e2d9' }}
           >
@@ -588,7 +590,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
         )}
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto">
+        <div data-print-content className="flex-1 overflow-y-auto">
 
           {/* ── Idle state ─────────────────────────────────────────── */}
           {appState === 'idle' && (
@@ -848,6 +850,22 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
                     </div>
                     <div className="flex items-center gap-2 text-[10px] font-mono" style={{ color: '#94a3b8' }}>
                       <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                      <button
+                        data-print-hide
+                        onClick={() => {
+                          const prev = document.title
+                          document.title = `DeepInsight — ${currentPromptLabel || prompt}`
+                          window.print()
+                          document.title = prev
+                        }}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded transition-colors hover:opacity-80"
+                        style={{ background: '#1e3a5f', color: 'white', fontFamily: 'inherit' }}
+                      >
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Export PDF
+                      </button>
                     </div>
                   </div>
                 )}
@@ -867,6 +885,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
           <AnimatePresence>
             {appState === 'done' && (
               <motion.div
+                data-print-hide
                 initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                 className="px-8 pb-12 space-y-3"
               >
