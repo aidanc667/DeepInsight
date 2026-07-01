@@ -635,7 +635,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
                 </div>
 
                 <p className="text-[10px] font-mono text-center" style={{ color: '#94a3b8' }}>
-                  ⌘ ↵ to run · Select a mode from the sidebar to force it
+                  Claude Haiku · Gemini Flash · Claude Sonnet · Live Web Search · Multi-Model Synthesis
                 </p>
               </div>
 
