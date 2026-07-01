@@ -634,6 +634,20 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
                   </div>
                 </div>
 
+                {selectedAgent && MODE_CONFIG[selectedAgent as QueryMode]?.example && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono shrink-0" style={{ color: '#94a3b8' }}>Try:</span>
+                    <button
+                      onClick={() => setPrompt(MODE_CONFIG[selectedAgent as QueryMode].example)}
+                      className="text-[11px] text-left px-3 py-1.5 rounded-lg transition-colors truncate"
+                      style={{ background: 'rgba(30,58,95,0.06)', color: '#1e3a5f', border: '1px solid rgba(30,58,95,0.12)' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(30,58,95,0.1)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(30,58,95,0.06)')}
+                    >
+                      {MODE_CONFIG[selectedAgent as QueryMode].example}
+                    </button>
+                  </div>
+                )}
                 <p className="text-[10px] font-mono text-center" style={{ color: '#94a3b8' }}>
                   Claude Haiku · Gemini Flash · Claude Sonnet · Live Web Search · Multi-Model Synthesis
                 </p>
