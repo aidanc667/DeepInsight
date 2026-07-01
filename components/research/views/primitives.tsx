@@ -37,19 +37,18 @@ export function CredibilityPip({ tier }: { tier?: string }) {
 export interface CardProps {
   children: React.ReactNode
   delay?: number
-  accentColor?: string
   className?: string
   style?: React.CSSProperties
 }
 
-export function Card({ children, delay = 0, accentColor, className = '', style }: CardProps) {
+export function Card({ children, delay = 0, className = '', style }: CardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, delay, ease: [0.16, 1, 0.3, 1] }}
       className={`rounded-xl overflow-hidden ${className}`}
-      style={{ background: 'white', border: '1px solid #e8e2d9', borderRadius: '12px', ...style }}
+      style={{ background: 'white', border: '1px solid #e8e2d9', ...style }}
     >
       {children}
     </motion.div>
