@@ -9,7 +9,7 @@ export const maxDuration = 120
 
 // In-memory rate limiter: 20 research runs per user per 24 h.
 // Resets on cold start — good enough without an external store.
-const LIMIT = 20
+const LIMIT = 40
 const WINDOW_MS = 24 * 60 * 60 * 1000
 const counts = new Map<string, { n: number; windowStart: number }>()
 
