@@ -661,9 +661,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
                       </p>
                     )}
                     <p className="text-[14px] font-semibold" style={{ color: '#111827' }}>
-                      {questionHistory.length === 0
-                        ? 'A few quick questions to personalise your research'
-                        : `Question ${questionHistory.length + 1} of ${totalQuestions}`}
+                      {`Question ${questionIndex + 1} of ${Math.max(totalQuestions, questionIndex + 1)}`}
                     </p>
                   </div>
 
