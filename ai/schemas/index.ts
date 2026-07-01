@@ -193,6 +193,7 @@ export const DecisionModeSchema = z.object({
   ...BASE_FIELDS,
   ...WITH_WHAT_MISSES,
   ...WITH_ACTION_PLAN,
+  ...WITH_GO_DEEPER,
   decisionCriteria: z.array(DecisionCriterionSchema),
   decisionOptions:  z.array(DecisionOptionSchema),
   winner:           z.string(),
@@ -246,9 +247,10 @@ export const ChallengeModeSchema = z.object({
   verdict:        z.string(),
 })
 
-// Action: no WhatThisMisses, no ActionPlan, no GoDeeper — all excluded in StructuredOutputView
+// Action: no WhatThisMisses, no ActionPlan — excluded in StructuredOutputView; GoDeeper shown
 export const ActionModeSchema = z.object({
   ...BASE_FIELDS,
+  ...WITH_GO_DEEPER,
   executionSteps:    z.array(ExecutionStepSchema),
   resourcesNeeded:   z.string(),
   potentialBlockers: z.array(z.string()),

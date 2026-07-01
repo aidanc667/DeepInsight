@@ -51,7 +51,8 @@ Output ONLY a JSON object:
   "expertConsensus": "",
   "misconceptions": [],
   "implications": "",
-  "goDeeper": []
+  "goDeeper": ["A follow-up question that would refine or validate this recommendation"]
+  // 2 go-deeper questions
 }
 
 RULES:

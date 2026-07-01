@@ -13,7 +13,9 @@ Output ONLY a JSON object:
   ],
   "resourcesNeeded": "2-3 sentences. What tools, skills, time, budget, or access you need before starting.",
   "potentialBlockers": ["Specific thing that could derail this plan — and how to avoid it"],
+  "goDeeper": ["A follow-up question to go further or adapt this plan"],
+  // 2 go-deeper questions
   "sourceRegistry": [{ "url": "...", "domain": "...", "credibilityTier": "high", "keyInsight": "..." }]
 }
 
-RULES: 5-7 ordered steps. 3 blockers. Every step must be specific enough to act on today.`
+RULES: 5-7 ordered steps. 3 blockers. 2 go-deeper questions. Every step must be specific enough to act on today.`

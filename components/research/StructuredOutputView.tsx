@@ -29,8 +29,8 @@ export function StructuredOutputView({ data, isLoading: _, onGoDeeper }: Props) 
 
   // Modes where Action Plan is meaningful (the model produces real next steps)
   const showActionPlan = mode !== 'action' && mode !== 'perspectives' && mode !== 'forecast'
-  // Modes where Go Deeper questions add real value
-  const showGoDeeper = mode !== 'decision' && mode !== 'action'
+  // Go Deeper shown for all modes
+  const showGoDeeper = true
 
   return (
     <div className="space-y-3.5">
