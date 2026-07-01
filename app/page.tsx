@@ -236,6 +236,9 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
     setCurrentPromptLabel(prompt)
     classifiedDomainRef.current = null
 
+    let shownQ1 = false
+    let didStartResearch = false
+
     try {
       const skipClassify = !!selectedAgent || !!detectedMode
       const mode = selectedAgent ?? detectedMode ?? undefined
@@ -264,11 +267,9 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
         }).then(r => r.json())
       })
 
-      let shownQ1 = false
-
       // Transition to questioning as soon as Q1 arrives — don't wait for full plan
       firstQPromise.then(firstQ => {
-        if (shownQ1 || firstQ.done || !firstQ.question) return
+        if (shownQ1 || didStartResearch || firstQ.done || !firstQ.question) return
         shownQ1 = true
         firePresearch(prompt)
         setQuestionPlan({ expertTitle: '', questions: [firstQ.question] })
@@ -293,8 +294,18 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
           setQuestionPlan(plan)
           setAppState('questioning')
         } else {
-          // Q1 already visible — silently upgrade to full plan so Qs 2+ are pre-loaded
-          setQuestionPlan(prev => (prev && prev.questions.length > 1 ? prev : plan))
+          // Q1 already visible — keep the already-shown Q1, append Q2+ from plan
+          // (plan Q1 may differ in phrasing from clarify/next Q1 — don't swap it)
+          setQuestionPlan(prev => {
+            if (prev && prev.questions.length > 1) return prev
+            return {
+              expertTitle: plan.expertTitle ?? prev?.expertTitle ?? '',
+              questions: [
+                ...(prev?.questions ?? [plan.questions[0]]),
+                ...plan.questions.slice(prev?.questions.length ?? 1),
+              ],
+            }
+          })
         }
       } else if (!shownQ1) {
         // Plan says no questions — check needsContext fallback
@@ -306,15 +317,18 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
             setQuestionPlan({ expertTitle: plan.expertTitle ?? '', questions: [next.question] })
             setAppState('questioning')
           } else {
+            didStartResearch = true
             startResearch()
           }
         } else {
+          didStartResearch = true
           startResearch()
         }
       }
       // If plan is empty but shownQ1 is true: Q1 came from clarify/next.
       // After answering, handleSubmitAnswer will call clarify/next for Q2 (existing flow).
     } catch {
+      didStartResearch = true
       startResearch()
     }
   }, [prompt, startResearch, needsContext, firePresearch, selectedAgent, detectedMode])
@@ -782,11 +796,11 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
           </AnimatePresence>
 
           {/* ── Research Loading ─────────────────────────────────────── */}
-          {(isResearching || isLoading) && !object?.executiveBrief && (
+          {appState === 'researching' && !outputData?.executiveBrief && (
             <div className="px-8 py-8 max-w-2xl mx-auto w-full">
               <ResearchLoadingScreen
                 prompt={prompt}
-                isActive={isResearching && !object?.executiveBrief}
+                isActive={true}
               />
             </div>
           )}
