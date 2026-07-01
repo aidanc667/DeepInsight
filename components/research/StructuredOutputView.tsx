@@ -64,10 +64,10 @@ export function StructuredOutputView({ data, isLoading: _, onGoDeeper }: Props) 
       )}
 
       {/* Universal secondary — shown where relevant */}
-      {s.risks.length > 0 && mode !== 'competitive' && mode !== 'action' && (
+      {s.risks.length > 0 && mode !== 'competitive' && mode !== 'action' && mode !== 'explainer' && (
         <Risks risks={s.risks} delay={0.05} />
       )}
-      {mode !== 'competitive' && mode !== 'action' && mode !== 'explainer' && (
+      {mode !== 'competitive' && mode !== 'action' && mode !== 'explainer' && mode !== 'perspectives' && (
         <WhatThisMisses data={s.whatThisMisses} delay={0.07} />
       )}
       {showActionPlan && (

@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import {
   Target, BookOpen, Radio,
   MessageSquare, BarChart3, Link2, Check, RotateCcw,
-  Zap, ArrowRight, Loader2, Plus, Send
+  Zap, ArrowRight, Loader2, Plus, Send, Menu, Brain
 } from 'lucide-react'
 import { TrustScoreBadge } from '@/components/research/TrustScoreBadge'
 import { ResearchLoadingScreen } from '@/components/research/ResearchLoadingScreen'
@@ -95,6 +95,8 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
   const [currentPromptLabel, setCurrentPromptLabel] = useState('')
 
   const [recentSessions, setRecentSessions] = useState<Array<{ id: string; prompt: string; mode?: QueryMode; createdAt: string }>>([])
+  const [researchError, setResearchError]   = useState<string | null>(null)
+  const [sidebarOpen, setSidebarOpen]       = useState(false)
 
   useEffect(() => {
     if (appState !== 'idle' && appState !== 'done') return
@@ -170,7 +172,13 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
         })
       }
     },
-    onError: () => setAppState('idle'),
+    onError: (err) => {
+      setAppState('idle')
+      const msg = err instanceof Error ? err.message : String(err)
+      setResearchError(msg.includes('429') || msg.toLowerCase().includes('rate')
+        ? "You've hit the daily research limit. Please try again tomorrow."
+        : 'Something went wrong with the research pipeline. Please try again.')
+    },
   })
 
   const mode       = (object?.queryMode ?? detectedMode ?? 'research') as QueryMode
@@ -211,6 +219,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
 
   const handleAnalyze = useCallback(async () => {
     if (!prompt.trim()) return
+    setResearchError(null)
     setAppState('checking')
     setQuestionHistory([])
     setQuestionPlan(null)
@@ -423,6 +432,20 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
   }, [followUpText, prompt, currentPromptLabel, object, detectedMode, submit])
 
   const handleGoDeeper = useCallback((question: string) => {
+    if (object) {
+      setChatHistory(prev => [...prev, {
+        prompt: currentPromptLabel || prompt,
+        result: object as Partial<EliteResearchOutput>,
+      }])
+    }
+    const prevContext = [
+      object?.executiveBrief ? `PREVIOUS SUMMARY: ${object.executiveBrief}` : '',
+      object?.keyFindings?.length
+        ? `KEY FINDINGS:\n${object.keyFindings.slice(0, 3).map(f => `• ${f?.finding ?? ''}`).filter(f => f !== '• ').join('\n')}`
+        : '',
+    ].filter(Boolean).join('\n\n')
+
+    setCurrentPromptLabel(question)
     setPrompt(question)
     setQuestionHistory([])
     setQuestionPlan(null)
@@ -432,9 +455,9 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
     setDetectedMode(null)
     setAppState('researching')
     loadSessions().then(prior => {
-      submit({ prompt: question, forceProceed: true, mode: undefined, priorSessions: prior.slice(0, 10) })
+      submit({ prompt: question, clarificationContext: prevContext || undefined, forceProceed: true, mode: undefined, priorSessions: prior.slice(0, 10) })
     })
-  }, [submit])
+  }, [submit, object, currentPromptLabel, prompt])
 
   const handleRerun = useCallback((query: string) => {
     setPrompt(query)
@@ -449,6 +472,28 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: '#f8f5f0' }}>
+
+      {/* ── Mobile header ─────────────────────────────────────────── */}
+      <div
+        className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center gap-3 px-4 h-12 shrink-0"
+        style={{ background: '#111827', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+      >
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="p-1.5 rounded transition-colors"
+          style={{ color: '#94a3b8' }}
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <button onClick={onNewChat} className="flex items-center gap-2 transition-opacity hover:opacity-80">
+          <div className="flex items-center justify-center h-[20px] w-[20px] rounded-[4px]" style={{ background: '#1e3a5f' }}>
+            <Brain className="h-3 w-3" style={{ color: '#7aaccc' }} />
+          </div>
+          <span className="text-[13px] font-bold tracking-[0.06em]" style={{ color: '#e2e8f0' }}>DeepInsight</span>
+        </button>
+        {trustScore && <div className="ml-auto"><TrustScoreBadge score={trustScore} /></div>}
+      </div>
 
       {/* ── Sidebar ──────────────────────────────────────────────── */}
       <Sidebar
@@ -470,15 +515,17 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
           setRecentSessions(prev => prev.filter(s => s.id !== id))
           void deleteSession(id)
         }}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
 
       {/* ── Main area ─────────────────────────────────────────────── */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden pt-12 md:pt-0">
 
-        {/* Topbar — shown when researching or done */}
+        {/* Topbar — shown when researching or done (desktop only — mobile has its own header) */}
         {(appState === 'done' || appState === 'researching' || isLoading) && (
           <div
-            className="flex items-center gap-3 px-6 h-12 shrink-0"
+            className="hidden md:flex items-center gap-3 px-6 h-12 shrink-0"
             style={{ background: '#f8f5f0', borderBottom: '1px solid #e8e2d9' }}
           >
             <span className="text-[11px]" style={{ color: '#94a3b8' }}>Research</span>
@@ -514,6 +561,15 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
           {appState === 'idle' && (
             <div className="flex flex-col items-center justify-center min-h-full px-8 py-16">
               <div className="w-full max-w-xl space-y-5">
+                {researchError && (
+                  <div
+                    className="flex items-start gap-3 px-4 py-3 rounded-xl text-[13px]"
+                    style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', color: '#b91c1c' }}
+                  >
+                    <span className="shrink-0 mt-0.5">⚠</span>
+                    <span>{researchError}</span>
+                  </div>
+                )}
                 <h1 className="text-[26px] font-bold tracking-tight" style={{ color: '#111827' }}>
                   What do you want to research?
                 </h1>
@@ -807,7 +863,8 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
         </div>{/* end scrollable */}
       </main>
 
-      {/* ── Sources Rail (done state only) ────────────────────────── */}
+      {/* ── Sources Rail (done state only, desktop only) ─────────── */}
+      <div className="hidden md:block">
       <AnimatePresence>
         {appState === 'done' && object?.sourceRegistry && object.sourceRegistry.length > 0 && (
           <motion.div
@@ -821,6 +878,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>{/* end hidden md:block */}
 
     </div>
   )

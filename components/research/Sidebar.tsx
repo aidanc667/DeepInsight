@@ -30,15 +30,32 @@ interface SidebarProps {
   recentSessions: RecentSession[]
   onRerun: (session: RecentSession) => void
   onDeleteSession: (id: string) => void
+  isOpen: boolean
+  onClose: () => void
 }
 
-export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSessions, onRerun, onDeleteSession }: SidebarProps) {
+export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSessions, onRerun, onDeleteSession, isOpen, onClose }: SidebarProps) {
   const { signOut } = useClerk()
   const { user } = useUser()
 
-  return (
+  const handleModeSelect = (id: QueryMode) => {
+    onModeSelect(id)
+    onClose()
+  }
+
+  const handleNewResearch = () => {
+    onNewResearch()
+    onClose()
+  }
+
+  const handleRerun = (session: RecentSession) => {
+    onRerun(session)
+    onClose()
+  }
+
+  const sidebarContent = (
     <aside
-      className="flex flex-col shrink-0 overflow-hidden"
+      className="flex flex-col h-full overflow-hidden"
       style={{
         width: '220px',
         background: '#111827',
@@ -47,7 +64,7 @@ export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSession
     >
       {/* Logo */}
       <button
-        onClick={onNewResearch}
+        onClick={handleNewResearch}
         className="flex items-center gap-2.5 px-4 pt-5 pb-4 w-full text-left transition-opacity hover:opacity-80"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
@@ -60,12 +77,18 @@ export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSession
         <span className="text-[13px] font-bold tracking-[0.06em]" style={{ color: '#e2e8f0' }}>
           DeepInsight
         </span>
+        {/* Close button — mobile only */}
+        <X
+          className="h-4 w-4 ml-auto md:hidden"
+          style={{ color: '#4a6a8a' }}
+          onClick={e => { e.stopPropagation(); onClose() }}
+        />
       </button>
 
       {/* New Research */}
       <div className="px-3 pt-3">
         <button
-          onClick={onNewResearch}
+          onClick={handleNewResearch}
           className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-medium transition-colors"
           style={{
             background: 'rgba(255,255,255,0.07)',
@@ -91,7 +114,7 @@ export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSession
             return (
               <button
                 key={mode.id}
-                onClick={() => onModeSelect(mode.id)}
+                onClick={() => handleModeSelect(mode.id)}
                 className="w-full flex items-center gap-2 px-2.5 py-[7px] rounded-md text-left transition-colors"
                 style={{
                   background: isActive ? 'rgba(255,255,255,0.08)' : 'transparent',
@@ -141,7 +164,7 @@ export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSession
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
                 <button
-                  onClick={() => onRerun(session)}
+                  onClick={() => handleRerun(session)}
                   className="flex-1 min-w-0 px-2.5 py-2 text-left"
                   aria-label={session.prompt}
                 >
@@ -197,5 +220,30 @@ export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSession
         </button>
       </div>
     </aside>
+  )
+
+  return (
+    <>
+      {/* Desktop: always-visible sidebar in the flex row */}
+      <div className="hidden md:flex shrink-0">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile: slide-in overlay */}
+      {isOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0"
+            style={{ background: 'rgba(0,0,0,0.5)' }}
+            onClick={onClose}
+          />
+          {/* Drawer */}
+          <div className="relative flex">
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   )
 }
