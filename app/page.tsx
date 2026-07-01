@@ -5,7 +5,7 @@ import { useClerk } from '@clerk/nextjs'
 import { experimental_useObject as useObject } from '@ai-sdk/react'
 import { motion, AnimatePresence } from 'motion/react'
 import {
-  Square, Target, BookOpen, Radio,
+  Target, BookOpen, Radio,
   MessageSquare, BarChart3, Link2, Check, RotateCcw,
   Zap, ArrowRight, Loader2, Plus, Send
 } from 'lucide-react'
@@ -99,6 +99,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
   const [recentSessions, setRecentSessions] = useState<Array<{ id: string; prompt: string; mode?: QueryMode; createdAt: string }>>([])
 
   useEffect(() => {
+    if (appState !== 'idle' && appState !== 'done') return
     loadSessions().then(sessions => {
       setRecentSessions(sessions.map(s => ({
         id: String(s.timestamp ?? Date.now()),
@@ -417,7 +418,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
   const isInputDisabled = isResearching || appState === 'questioning'
   const totalQuestions  = questionPlan?.questions.length ?? 0
   const expertTitle     = questionPlan?.expertTitle ?? ''
-  const isChecking      = (appState as AppState) === 'checking'
+  const isChecking      = appState === 'checking'
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: '#f8f5f0' }}>
@@ -763,6 +764,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
       <AnimatePresence>
         {appState === 'done' && object?.sourceRegistry && object.sourceRegistry.length > 0 && (
           <motion.div
+            key="sources-rail"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}

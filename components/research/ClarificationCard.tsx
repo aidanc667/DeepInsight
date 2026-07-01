@@ -36,11 +36,12 @@ export function ClarificationCard({ question, index, selected, onSelect }: Props
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.08 }}
-      className="rounded-xl bg-[#0a1830] border border-cyan-500/15 p-5 space-y-4"
+      style={{ background: 'white', border: '1px solid #e8e2d9', borderRadius: 12 }}
+      className="p-5 space-y-4"
     >
       {/* Question text */}
-      <p className="text-sm font-medium text-slate-200 leading-relaxed">
-        <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-cyan-500/10 border border-cyan-500/25 font-mono text-[10px] font-bold text-cyan-400 mr-2.5">
+      <p style={{ fontFamily: 'Georgia, serif', fontSize: 16, color: '#1e293b', lineHeight: 1.6 }} className="font-medium leading-relaxed">
+        <span className="inline-flex h-5 w-5 items-center justify-center rounded-md font-mono text-[10px] font-bold mr-2.5" style={{ background: '#f0f4f8', border: '1px solid #e8e2d9', color: '#1e3a5f' }}>
           {index + 1}
         </span>
         {question.question}
@@ -54,8 +55,8 @@ export function ClarificationCard({ question, index, selected, onSelect }: Props
             onClick={() => { setShowInput(false); onSelect(opt) }}
             className={`px-3.5 py-1.5 rounded-lg text-sm border transition-all duration-150 font-medium ${
               selected === opt
-                ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
-                : 'border-white/[0.08] bg-white/[0.02] text-slate-400 hover:border-white/[0.2] hover:text-slate-200'
+                ? 'border-[#1e3a5f] bg-[#f0f4f8] text-[#1e3a5f]'
+                : 'border-[#e8e2d9] bg-white text-[#1e293b] hover:border-[#1e3a5f]/40 hover:text-[#1e3a5f]'
             }`}
           >
             {opt}
@@ -67,8 +68,8 @@ export function ClarificationCard({ question, index, selected, onSelect }: Props
           onClick={handleOther}
           className={`px-3.5 py-1.5 rounded-lg text-sm border transition-all duration-150 font-medium ${
             isCustomSelected || showInput
-              ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-300'
-              : 'border-white/[0.08] bg-white/[0.02] text-slate-500 hover:border-white/[0.2] hover:text-slate-300'
+              ? 'border-[#1e3a5f] bg-[#f0f4f8] text-[#1e3a5f]'
+              : 'border-[#e8e2d9] bg-white text-[#64748b] hover:border-[#1e3a5f]/40 hover:text-[#1e3a5f]'
           }`}
         >
           Other…
@@ -91,12 +92,12 @@ export function ClarificationCard({ question, index, selected, onSelect }: Props
               onChange={e => setCustomValue(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleCustomSubmit() }}
               placeholder="Type your answer..."
-              className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-white/[0.08] bg-[#060c16] text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/40 focus:ring-1 focus:ring-cyan-500/15 transition-all"
+              className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-[#e8e2d9] bg-white text-[#1e293b] placeholder:text-[#94a3b8] focus:outline-none focus:border-[#1e3a5f]/50 focus:ring-1 focus:ring-[#1e3a5f]/15 transition-all"
             />
             <button
               onClick={handleCustomSubmit}
               disabled={!customValue.trim()}
-              className="px-3.5 py-1.5 rounded-lg text-sm font-medium bg-cyan-500 text-[#060c16] disabled:opacity-40 hover:bg-cyan-400 transition-colors"
+              className="px-3.5 py-1.5 rounded-lg text-sm font-medium bg-[#1e3a5f] text-white disabled:opacity-40 hover:bg-[#1e3a5f]/90 transition-colors"
             >
               Set
             </button>
@@ -106,7 +107,7 @@ export function ClarificationCard({ question, index, selected, onSelect }: Props
 
       {/* Confirmed custom value */}
       {isCustomSelected && !showInput && (
-        <p className="text-xs font-mono text-cyan-400 pl-1">
+        <p className="text-xs font-mono pl-1" style={{ color: '#1e3a5f' }}>
           ✓ &ldquo;{selected}&rdquo;
           <button
             onClick={handleOther}

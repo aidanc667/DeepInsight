@@ -78,17 +78,12 @@ export function ResearchLoadingScreen({ prompt, isActive }: Props) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6, transition: { duration: 0.2 } }}
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="card-bevel rounded-2xl overflow-hidden"
+          className="rounded-2xl overflow-hidden"
           style={{
-            background: 'linear-gradient(160deg, #0d192a 0%, #0a1220 100%)',
-            border: '1px solid rgba(255,255,255,0.072)',
+            background: 'white',
+            border: '1px solid #e8e2d9',
           }}
         >
-          {/* Cyan shimmer top */}
-          <div className="h-px" style={{
-            background: 'linear-gradient(90deg, transparent 0%, rgba(6,182,212,0.45) 50%, transparent 100%)',
-          }} />
-
           <div className="p-6 space-y-5">
 
             {/* ── Expert persona header ─────────────────────────────── */}
@@ -99,18 +94,18 @@ export function ResearchLoadingScreen({ prompt, isActive }: Props) {
                 transition={{ delay: 0.1, duration: 0.4 }}
                 className="flex items-center justify-center h-9 w-9 rounded-xl shrink-0"
                 style={{
-                  background: 'rgba(6,182,212,0.1)',
-                  border: '1px solid rgba(6,182,212,0.22)',
+                  background: '#f0f4f8',
+                  border: '1px solid #e8e2d9',
                 }}
               >
-                <Sparkles className="h-4 w-4 text-cyan-400" />
+                <Sparkles className="h-4 w-4" style={{ color: '#1e3a5f' }} />
               </motion.div>
 
               <div className="min-w-0">
                 <p className="text-[9px] font-mono text-slate-600 tracking-[0.22em] uppercase mb-0.5">
                   Consulting Expert
                 </p>
-                <p className="text-[13px] font-medium text-slate-200 truncate">
+                <p className="text-[13px] font-medium truncate" style={{ color: '#111827' }}>
                   {persona.title}
                 </p>
               </div>
@@ -118,12 +113,12 @@ export function ResearchLoadingScreen({ prompt, isActive }: Props) {
               <div
                 className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-md shrink-0"
                 style={{
-                  background: 'rgba(6,182,212,0.07)',
-                  border: '1px solid rgba(6,182,212,0.18)',
+                  background: '#f0f4f8',
+                  border: '1px solid #e8e2d9',
                 }}
               >
-                <Zap className="h-3 w-3 text-cyan-400 animate-pulse" />
-                <span className="text-[9px] font-mono text-cyan-400 tracking-[0.15em]">ACTIVE</span>
+                <Zap className="h-3 w-3 animate-pulse" style={{ color: '#6b8cae' }} />
+                <span className="text-[9px] font-mono tracking-[0.15em]" style={{ color: '#6b8cae' }}>ACTIVE</span>
               </div>
             </div>
 
@@ -150,12 +145,12 @@ export function ResearchLoadingScreen({ prompt, isActive }: Props) {
               {/* Bar track */}
               <div
                 className="h-[3px] rounded-full overflow-hidden"
-                style={{ background: 'rgba(255,255,255,0.05)' }}
+                style={{ background: '#e8e2d9' }}
               >
                 <motion.div
                   className="h-full rounded-full"
                   style={{
-                    background: 'linear-gradient(90deg, #0891b2 0%, #22d3ee 60%, #67e8f9 100%)',
+                    background: '#1e3a5f',
                   }}
                   initial={{ width: '0%' }}
                   animate={{ width: `${progress * 100}%` }}
@@ -186,28 +181,28 @@ export function ResearchLoadingScreen({ prompt, isActive }: Props) {
                         background: done
                           ? 'rgba(52,211,153,0.12)'
                           : active
-                          ? 'rgba(6,182,212,0.12)'
-                          : 'rgba(255,255,255,0.03)',
+                          ? '#f0f4f8'
+                          : '#fafaf8',
                         border: done
                           ? '1px solid rgba(52,211,153,0.28)'
                           : active
-                          ? '1px solid rgba(6,182,212,0.32)'
-                          : '1px solid rgba(255,255,255,0.07)',
+                          ? '1px solid #e8e2d9'
+                          : '1px solid #e8e2d9',
                       }}
                     >
                       {done ? (
                         <Check className="h-3.5 w-3.5 text-emerald-400" />
                       ) : active ? (
-                        <Icon className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
+                        <Icon className="h-3.5 w-3.5 animate-pulse" style={{ color: '#1e3a5f' }} />
                       ) : (
-                        <Icon className="h-3.5 w-3.5 text-slate-700" />
+                        <Icon className="h-3.5 w-3.5" style={{ color: '#c8d0d8' }} />
                       )}
                     </div>
 
                     <p
                       className="text-[8.5px] font-mono text-center leading-tight tracking-wider transition-colors duration-300"
                       style={{
-                        color: done ? '#34d399' : active ? '#22d3ee' : '#334155',
+                        color: done ? '#34d399' : active ? '#1e3a5f' : '#94a3b8',
                       }}
                     >
                       {stage.label.toUpperCase()}
@@ -220,11 +215,11 @@ export function ResearchLoadingScreen({ prompt, isActive }: Props) {
             {/* ── Model callout ─────────────────────────────────────── */}
             <div
               className="flex items-center justify-center gap-4 pt-1 border-t"
-              style={{ borderColor: 'rgba(255,255,255,0.05)' }}
+              style={{ borderColor: '#e8e2d9' }}
             >
               {[
                 { label: 'CLAUDE SONNET', dot: '#818cf8' },
-                { label: 'GEMINI FLASH', dot: '#22d3ee' },
+                { label: 'GEMINI FLASH', dot: '#6b8cae' },
                 { label: 'LIVE WEB', dot: '#34d399' },
               ].map(({ label, dot }) => (
                 <div key={label} className="flex items-center gap-1.5 pt-3">

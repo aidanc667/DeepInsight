@@ -23,12 +23,12 @@ export function TrustScoreBadge({ score }: Props) {
   return (
     <Tooltip>
       <TooltipTrigger>
-        <div className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg border ${cfg.border} bg-white/[0.03] cursor-default select-none`}>
+        <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg cursor-default select-none" style={{ background: 'white', border: '1px solid #e8e2d9', borderRadius: 8 }}>
           <div className="relative" style={{ width: SIZE * 0.55, height: SIZE * 0.55 }}>
             <svg width={SIZE * 0.55} height={SIZE * 0.55} className="-rotate-90">
               <circle
                 cx={SIZE * 0.275} cy={SIZE * 0.275} r={R * 0.55}
-                fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={STROKE * 0.55}
+                fill="none" stroke="#e8e2d9" strokeWidth={STROKE * 0.55}
               />
               <circle
                 cx={SIZE * 0.275} cy={SIZE * 0.275} r={R * 0.55}
@@ -53,27 +53,28 @@ export function TrustScoreBadge({ score }: Props) {
       </TooltipTrigger>
       <TooltipContent
         side="bottom"
-        className="bg-[#0c1525] border border-white/[0.08] text-slate-300 text-xs p-3 space-y-1.5 min-w-[200px] shadow-xl"
+        className="text-xs p-3 space-y-1.5 min-w-[200px] shadow-lg"
+        style={{ background: 'white', border: '1px solid #e8e2d9', color: '#1e293b' }}
       >
-        <p className="font-mono text-[10px] tracking-wider text-slate-500 uppercase mb-2">Score Breakdown</p>
-        <div className="flex justify-between text-slate-400">
+        <p className="font-mono text-[10px] tracking-wider uppercase mb-2" style={{ color: '#94a3b8' }}>Score Breakdown</p>
+        <div className="flex justify-between" style={{ color: '#64748b' }}>
           <span>Model confidence ×0.30</span>
-          <span className="font-mono text-slate-300">{score.modelConfidence.toFixed(0)} pts</span>
+          <span className="font-mono" style={{ color: '#1e293b' }}>{score.modelConfidence.toFixed(0)} pts</span>
         </div>
-        <div className="flex justify-between text-slate-400">
+        <div className="flex justify-between" style={{ color: '#64748b' }}>
           <span>Source quality ×0.30</span>
-          <span className="font-mono text-slate-300">{(score.citationScore * 100).toFixed(0)} pts</span>
+          <span className="font-mono" style={{ color: '#1e293b' }}>{(score.citationScore * 100).toFixed(0)} pts</span>
         </div>
-        <div className="flex justify-between text-slate-400">
+        <div className="flex justify-between" style={{ color: '#64748b' }}>
           <span>Coverage ×0.25</span>
-          <span className="font-mono text-slate-300">{score.coverageScore} pts</span>
+          <span className="font-mono" style={{ color: '#1e293b' }}>{score.coverageScore} pts</span>
         </div>
-        <div className="flex justify-between text-slate-400">
+        <div className="flex justify-between" style={{ color: '#64748b' }}>
           <span>Recency proxy ×0.15</span>
-          <span className="font-mono text-slate-300">{(score.recencyScore * 100).toFixed(0)} pts</span>
+          <span className="font-mono" style={{ color: '#1e293b' }}>{(score.recencyScore * 100).toFixed(0)} pts</span>
         </div>
-        <div className="border-t border-white/[0.07] pt-1.5 flex justify-between font-semibold">
-          <span className="text-slate-400">Final</span>
+        <div className="pt-1.5 flex justify-between font-semibold" style={{ borderTop: '1px solid #e8e2d9' }}>
+          <span style={{ color: '#64748b' }}>Final</span>
           <span className={`font-mono ${cfg.text}`}>{score.finalScore}/100</span>
         </div>
       </TooltipContent>
