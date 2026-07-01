@@ -1,19 +1,20 @@
 'use client'
 
+import React from 'react'
 import { useClerk } from '@clerk/nextjs'
 import { useUser } from '@clerk/nextjs'
-import { LogOut, Plus, Brain, X } from 'lucide-react'
+import { LogOut, Plus, Brain, X, Target, BookOpen, Radio, MessageSquare, BarChart3, Link2, ArrowRight, Zap } from 'lucide-react'
 import type { QueryMode } from '@/ai/schemas'
 
-const MODES: { id: QueryMode; label: string; code: string }[] = [
-  { id: 'decision',     label: 'Strategy',      code: 'AXIOM'   },
-  { id: 'research',     label: 'Research',       code: 'NOVA'    },
-  { id: 'intelligence', label: 'Analysis',       code: 'CIPHER'  },
-  { id: 'perspectives', label: 'Perspectives',   code: 'ECHO'    },
-  { id: 'competitive',  label: 'Challenge',      code: 'TITAN'   },
-  { id: 'explainer',    label: 'Understanding',  code: 'SAGE'    },
-  { id: 'action',       label: 'Execution',      code: 'FORGE'   },
-  { id: 'forecast',     label: 'Forecast',       code: 'VERITAS' },
+const MODES: { id: QueryMode; label: string; icon: React.ElementType }[] = [
+  { id: 'decision',     label: 'Strategy',      icon: Target       },
+  { id: 'research',     label: 'Research',       icon: BookOpen     },
+  { id: 'intelligence', label: 'Analysis',       icon: Radio        },
+  { id: 'perspectives', label: 'Perspectives',   icon: MessageSquare},
+  { id: 'competitive',  label: 'Challenge',      icon: BarChart3    },
+  { id: 'explainer',    label: 'Understanding',  icon: Link2        },
+  { id: 'action',       label: 'Execution',      icon: ArrowRight   },
+  { id: 'forecast',     label: 'Forecast',       icon: Zap          },
 ]
 
 interface RecentSession {
@@ -134,10 +135,7 @@ export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSession
                   }
                 }}
               >
-                <div
-                  className="w-[6px] h-[6px] rounded-[2px] shrink-0"
-                  style={{ background: isActive ? '#6b8cae' : '#2d3f54' }}
-                />
+                {(() => { const Icon = mode.icon; return <Icon className="h-3 w-3 shrink-0" style={{ color: isActive ? '#7aaccc' : '#4a6a8a' }} /> })()}
                 <span className="text-[11px] flex-1 leading-none">{mode.label}</span>
               </button>
             )
@@ -170,7 +168,7 @@ export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSession
                   </p>
                   {session.mode && (
                     <p className="text-[9px] font-mono mt-0.5" style={{ color: '#4a6a8a' }}>
-                      {MODES.find(m => m.id === session.mode)?.code ?? session.mode.toUpperCase()}
+                      {MODES.find(m => m.id === session.mode)?.label ?? session.mode.toUpperCase()}
                     </p>
                   )}
                 </button>

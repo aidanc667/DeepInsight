@@ -11,11 +11,11 @@ interface Props {
 }
 
 const STAGES = [
-  { id: 'classify',   label: 'Classifying',     icon: Brain,       color: '#818cf8' },
-  { id: 'expert',     label: 'Expert mode',      icon: Sparkles,    color: '#22d3ee' },
-  { id: 'research',   label: 'Researching',      icon: Globe,       color: '#06b6d4' },
-  { id: 'sources',    label: 'Evaluating',       icon: FileSearch,  color: '#34d399' },
-  { id: 'synthesize', label: 'Synthesizing',     icon: Layers,      color: '#f59e0b' },
+  { id: 'classify',   label: 'Query Analysis',   icon: Brain,       color: '#818cf8' },
+  { id: 'expert',     label: 'Expert Selection', icon: Sparkles,    color: '#22d3ee' },
+  { id: 'research',   label: 'Web Search',       icon: Globe,       color: '#06b6d4' },
+  { id: 'sources',    label: 'Source Review',    icon: FileSearch,  color: '#34d399' },
+  { id: 'synthesize', label: 'AI Synthesis',     icon: Layers,      color: '#f59e0b' },
 ] as const
 
 // Cumulative ms at which each stage completes

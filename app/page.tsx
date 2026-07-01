@@ -186,7 +186,8 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
     },
   })
 
-  const mode       = (object?.queryMode ?? detectedMode ?? 'research') as QueryMode
+  const outputData  = restoredOutput ?? object
+  const mode        = (outputData?.queryMode ?? detectedMode ?? 'research') as QueryMode
   // Fire Gemini presearch in the background — called as soon as clarification questions appear.
   // Result is stored in presearchRef and awaited by startResearch.
   const firePresearch = useCallback((q: string) => {
@@ -634,20 +635,42 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
                   </div>
                 </div>
 
-                {selectedAgent && MODE_CONFIG[selectedAgent as QueryMode]?.example && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono shrink-0" style={{ color: '#94a3b8' }}>Try:</span>
-                    <button
-                      onClick={() => setPrompt(MODE_CONFIG[selectedAgent as QueryMode].example)}
-                      className="text-[11px] text-left px-3 py-1.5 rounded-lg transition-colors truncate"
-                      style={{ background: 'rgba(30,58,95,0.06)', color: '#1e3a5f', border: '1px solid rgba(30,58,95,0.12)' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(30,58,95,0.1)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(30,58,95,0.06)')}
-                    >
-                      {MODE_CONFIG[selectedAgent as QueryMode].example}
-                    </button>
-                  </div>
-                )}
+                {/* Mode cards grid */}
+                <div className="grid grid-cols-4 gap-2">
+                  {(Object.keys(MODE_CONFIG) as QueryMode[]).map(modeKey => {
+                    const cfg = MODE_CONFIG[modeKey]
+                    const Icon = cfg.icon
+                    const isSelected = selectedAgent === modeKey
+                    return (
+                      <button
+                        key={modeKey}
+                        onClick={() => {
+                          setSelectedAgent(modeKey)
+                          setDetectedMode(modeKey)
+                          setPrompt(cfg.example)
+                        }}
+                        className="flex flex-col items-start gap-1.5 p-3 rounded-xl text-left transition-all"
+                        style={{
+                          background: isSelected ? 'rgba(30,58,95,0.08)' : 'rgba(30,58,95,0.02)',
+                          border: `1px solid ${isSelected ? 'rgba(30,58,95,0.22)' : '#e8e2d9'}`,
+                        }}
+                        onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(30,58,95,0.05)' }}
+                        onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(30,58,95,0.02)' }}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <Icon className="h-3 w-3 shrink-0" style={{ color: isSelected ? '#1e3a5f' : '#6b8cae' }} />
+                          <span className="text-[10px] font-semibold leading-none" style={{ color: isSelected ? '#1e3a5f' : '#334155' }}>
+                            {cfg.label}
+                          </span>
+                        </div>
+                        <p className="text-[9.5px] leading-snug line-clamp-2" style={{ color: '#94a3b8' }}>
+                          {cfg.example}
+                        </p>
+                      </button>
+                    )
+                  })}
+                </div>
+
                 <p className="text-[10px] font-mono text-center" style={{ color: '#94a3b8' }}>
                   Claude Haiku · Gemini Flash · Claude Sonnet · Live Web Search · Multi-Model Synthesis
                 </p>
@@ -787,7 +810,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
 
           {/* ── Results ─────────────────────────────────────────────── */}
           <AnimatePresence>
-            {(isResearching || appState === 'done') && (object || restoredOutput) && (
+            {(isResearching || appState === 'done') && outputData && (
               <motion.div
                 key="results"
                 initial={{ opacity: 0, y: 16 }}
@@ -802,9 +825,31 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
                     <div className="h-px flex-1" style={{ background: '#e8e2d9' }} />
                   </div>
                 )}
+
+                {/* Report header */}
+                {appState === 'done' && (
+                  <div className="flex items-center justify-between mb-5 pb-4" style={{ borderBottom: '1px solid #e8e2d9' }}>
+                    <div className="flex items-center gap-2">
+                      {(() => { const Icon = MODE_CONFIG[mode]?.icon; return Icon ? <Icon className="h-3.5 w-3.5" style={{ color: '#6b8cae' }} /> : null })()}
+                      <span className="text-[11px] font-bold tracking-[0.08em] uppercase" style={{ color: '#1e3a5f' }}>
+                        {MODE_CONFIG[mode]?.label ?? mode} Report
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] font-mono" style={{ color: '#94a3b8' }}>
+                      {outputData?.confidence != null && (
+                        <span style={{ color: outputData.confidence >= 70 ? '#16a34a' : '#94a3b8' }}>
+                          {outputData.confidence}% confidence
+                        </span>
+                      )}
+                      {outputData?.confidence != null && <span>·</span>}
+                      <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    </div>
+                  </div>
+                )}
+
                 <OutputErrorBoundary>
                   <StructuredOutputView
-                    data={(restoredOutput ?? object) as Partial<EliteResearchOutput>}
+                    data={outputData as Partial<EliteResearchOutput>}
                     isLoading={isLoading}
                     onGoDeeper={handleGoDeeper}
                   />
@@ -897,7 +942,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
       {/* ── Sources Rail (done state only, desktop only) ─────────── */}
       <div className="hidden md:block">
       <AnimatePresence>
-        {appState === 'done' && (restoredOutput ?? object)?.sourceRegistry && ((restoredOutput ?? object)!.sourceRegistry!.length > 0) && (
+        {appState === 'done' && outputData?.sourceRegistry && outputData.sourceRegistry.length > 0 && (
           <motion.div
             key="sources-rail"
             initial={{ opacity: 0, x: 20 }}
@@ -905,7 +950,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           >
-            <SourcesRail sources={(restoredOutput ?? object)!.sourceRegistry as NonNullable<EliteResearchOutput['sourceRegistry']>} />
+            <SourcesRail sources={outputData!.sourceRegistry as NonNullable<EliteResearchOutput['sourceRegistry']>} />
           </motion.div>
         )}
       </AnimatePresence>
