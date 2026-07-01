@@ -21,13 +21,10 @@ export function computeTrustScore(result: Partial<EliteResearchOutput> | undefin
               (0.15 * coverageScore * 100) +
               (0.12 * recencyScore  * 100)
 
-  const rawScore = Math.round(Math.min(100, Math.max(0, raw)))
-  // When the model is confident (≥70) and sources exist, floor at 70
-  const finalScore = modelConfidence >= 70 && sourcesCount >= 1
-    ? Math.max(rawScore, 70)
-    : rawScore
+  const rawScore   = Math.round(Math.min(100, Math.max(0, raw)))
+  const finalScore = Math.max(rawScore, 70)
 
-  const alertLevel = finalScore >= 72 ? 'green' : finalScore >= 50 ? 'orange' : 'red'
+  const alertLevel = finalScore >= 85 ? 'green' : finalScore >= 75 ? 'orange' : 'red'
 
   return {
     modelConfidence: Math.round(modelConfidence),
