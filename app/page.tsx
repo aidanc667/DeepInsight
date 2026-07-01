@@ -102,7 +102,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
     if (appState !== 'idle' && appState !== 'done') return
     loadSessions().then(sessions => {
       setRecentSessions(sessions.map(s => ({
-        id: String(s.timestamp ?? Date.now()),
+        id: s.id ?? String(s.timestamp ?? Date.now()),
         prompt: s.query ?? '',
         mode: s.mode as QueryMode | undefined,
         createdAt: String(s.timestamp ?? ''),
