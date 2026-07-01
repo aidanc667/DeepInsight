@@ -4,35 +4,22 @@
 
 import { auth } from '@clerk/nextjs/server'
 import { runResearchPipeline } from '@/ai/graphs/research-pipeline'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export const maxDuration = 120
 
-// In-memory rate limiter: 20 research runs per user per 24 h.
-// Resets on cold start — good enough without an external store.
-const LIMIT = 40
-const WINDOW_MS = 24 * 60 * 60 * 1000
-const counts = new Map<string, { n: number; windowStart: number }>()
-
-function checkRateLimit(key: string): boolean {
-  const now = Date.now()
-  const entry = counts.get(key)
-  if (!entry || now - entry.windowStart > WINDOW_MS) {
-    counts.set(key, { n: 1, windowStart: now })
-    return true
-  }
-  if (entry.n >= LIMIT) return false
-  entry.n++
-  return true
-}
-
 export async function POST(req: Request) {
   const { userId } = await auth()
+
+  // middleware.ts enforces auth, so userId is always present here.
+  // Fall back to IP only as a belt-and-suspenders safety net.
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'anon'
   const rateLimitKey = userId ?? ip
 
-  if (!checkRateLimit(rateLimitKey)) {
+  const allowed = await checkRateLimit(rateLimitKey)
+  if (!allowed) {
     return Response.json(
-      { error: 'Daily research limit reached (20/day). Please try again tomorrow.' },
+      { error: "You've hit the daily research limit (40/day). Please try again tomorrow." },
       { status: 429 },
     )
   }
