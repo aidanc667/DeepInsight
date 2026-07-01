@@ -177,17 +177,22 @@ export const ResearchOutputSchema = EliteResearchOutputSchema
 // Used in streamText Output.object() to keep grammar size within API limits.
 // Each schema only includes the fields that mode actually outputs.
 
+// Minimal fields every mode shares
 const BASE_FIELDS = {
-  queryMode:            z.enum(QUERY_MODES),
-  executiveBrief:       z.string(),
-  confidence:           z.number(),
-  adversarialReview:    z.string(),
-  actionableNextSteps:  z.array(z.string()),
-  sourceRegistry:       z.array(SourceRegistryItemSchema),
+  queryMode:    z.enum(QUERY_MODES),
+  executiveBrief: z.string(),
+  confidence:   z.number(),
+  sourceRegistry: z.array(SourceRegistryItemSchema),
 }
+// Optional composable additions — only included when that bento is actually rendered
+const WITH_WHAT_MISSES  = { adversarialReview:   z.string() }
+const WITH_ACTION_PLAN  = { actionableNextSteps: z.array(z.string()) }
+const WITH_GO_DEEPER    = { goDeeper:            z.array(z.string()) }
 
 export const DecisionModeSchema = z.object({
   ...BASE_FIELDS,
+  ...WITH_WHAT_MISSES,
+  ...WITH_ACTION_PLAN,
   decisionCriteria: z.array(DecisionCriterionSchema),
   decisionOptions:  z.array(DecisionOptionSchema),
   winner:           z.string(),
@@ -200,36 +205,48 @@ export const DecisionModeSchema = z.object({
 
 export const ResearchModeSchema = z.object({
   ...BASE_FIELDS,
+  ...WITH_WHAT_MISSES,
+  ...WITH_ACTION_PLAN,
+  ...WITH_GO_DEEPER,
   overview:       z.string(),
   keyFindings:    z.array(ResearchFindingSchema),
   misconceptions: z.array(z.string()),
   implications:   z.string(),
-  goDeeper:       z.array(z.string()),
   risks:          z.array(z.string()),
 })
 
 export const IntelligenceModeSchema = z.object({
   ...BASE_FIELDS,
+  ...WITH_WHAT_MISSES,
+  ...WITH_ACTION_PLAN,
+  ...WITH_GO_DEEPER,
   overview:     z.string(),
   keyFindings:  z.array(ResearchFindingSchema),
   patterns:     z.array(z.string()),
   implications: z.string(),
 })
 
+// Perspectives: no WhatThisMisses, no ActionPlan — both excluded in StructuredOutputView
 export const PerspectivesModeSchema = z.object({
   ...BASE_FIELDS,
+  ...WITH_GO_DEEPER,
   perspectiveSides: z.array(PerspectiveSideSchema),
   commonGround:     z.string(),
 })
 
+// Challenge: adversarialReview used as Steelman inside ChallengeView; ActionPlan shown; GoDeeper shown
 export const ChallengeModeSchema = z.object({
   ...BASE_FIELDS,
+  ...WITH_WHAT_MISSES,
+  ...WITH_ACTION_PLAN,
+  ...WITH_GO_DEEPER,
   risks:          z.array(z.string()),
   blindSpots:     z.array(z.string()),
   misconceptions: z.array(z.string()),
   verdict:        z.string(),
 })
 
+// Action: no WhatThisMisses, no ActionPlan, no GoDeeper — all excluded in StructuredOutputView
 export const ActionModeSchema = z.object({
   ...BASE_FIELDS,
   executionSteps:    z.array(ExecutionStepSchema),
@@ -237,8 +254,11 @@ export const ActionModeSchema = z.object({
   potentialBlockers: z.array(z.string()),
 })
 
+// Explainer: no WhatThisMisses — excluded; ActionPlan + GoDeeper shown
 export const ExplainerModeSchema = z.object({
   ...BASE_FIELDS,
+  ...WITH_ACTION_PLAN,
+  ...WITH_GO_DEEPER,
   overview:       z.string(),
   keyFindings:    z.array(ResearchFindingSchema),
   analogy:        z.string(),
@@ -247,22 +267,24 @@ export const ExplainerModeSchema = z.object({
 })
 
 export const ForecastTrendSchema = z.object({
-  signal:      z.string(),   // the trend or signal name
+  signal:      z.string(),
   direction:   z.enum(['accelerating', 'emerging', 'peaking', 'declining']),
-  timeHorizon: z.string(),   // e.g. "6–12 months", "2–3 years"
+  timeHorizon: z.string(),
   confidence:  z.enum(['high', 'medium', 'low']),
-  evidence:    z.string(),   // specific data points supporting this signal
+  evidence:    z.string(),
 })
 
+// Forecast: no ActionPlan — excluded; WhatThisMisses + GoDeeper shown
 export const ForecastModeSchema = z.object({
   ...BASE_FIELDS,
-  headline:        z.string(),   // one bold forward-looking statement
-  keyTrends:       z.array(ForecastTrendSchema),
-  wildCard:        z.string(),   // the unexpected scenario most people aren't pricing in
-  consensus:       z.string(),   // what mainstream forecasters expect
-  contrarian:      z.string(),   // where the consensus is likely wrong
-  implications:    z.string(),   // what this means for decisions right now
-  goDeeper:        z.array(z.string()),
+  ...WITH_WHAT_MISSES,
+  ...WITH_GO_DEEPER,
+  headline:     z.string(),
+  keyTrends:    z.array(ForecastTrendSchema),
+  wildCard:     z.string(),
+  consensus:    z.string(),
+  contrarian:   z.string(),
+  implications: z.string(),
 })
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

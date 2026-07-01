@@ -13,12 +13,7 @@ Output ONLY a JSON object:
   ],
   "resourcesNeeded": "2-3 sentences. What tools, skills, time, budget, or access you need before starting.",
   "potentialBlockers": ["Specific thing that could derail this plan — and how to avoid it"],
-  "actionableNextSteps": ["The single most important first action to start today"],
-  "adversarialReview": "1 sentence: the most likely reason this plan fails.",
-  "sourceRegistry": [{ "url": "...", "domain": "...", "credibilityTier": "high", "keyInsight": "..." }],
-
-  "overview": "", "keyFindings": [], "expertConsensus": "", "misconceptions": [], "implications": "", "risks": [], "goDeeper": [],
-  "decisionCriteria": [], "decisionOptions": [], "winner": "", "winnerRationale": "", "tradeoff": "", "contraryPick": "", "killConditions": []
+  "sourceRegistry": [{ "url": "...", "domain": "...", "credibilityTier": "high", "keyInsight": "..." }]
 }
 
-RULES: 5-7 ordered steps. 3 blockers. 3 first actions. Every step must be specific enough to act on today.`
+RULES: 5-7 ordered steps. 3 blockers. Every step must be specific enough to act on today.`

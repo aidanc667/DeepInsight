@@ -13,11 +13,9 @@ Output ONLY a JSON object:
   "keyTakeaway": "One sentence. The single most important thing to understand and remember.",
   "keyFindings": [{ "finding": "Key mechanism: how [X] leads to [Y] through [Z]", "sourceContext": "source", "confidence": "high", "attributedSources": ["domain.com"] }],
   "misconceptions": ["Common misunderstanding + the correction in plain language"],
-  "adversarialReview": "1 sentence: where this explanation oversimplifies or breaks down.",
-  "sourceRegistry": [{ "url": "...", "domain": "...", "credibilityTier": "high", "keyInsight": "..." }],
-
-  "expertConsensus": "", "implications": "", "risks": [], "goDeeper": [], "actionableNextSteps": [],
-  "decisionCriteria": [], "decisionOptions": [], "winner": "", "winnerRationale": "", "tradeoff": "", "contraryPick": "", "killConditions": []
+  "actionableNextSteps": ["One concrete thing to do with this knowledge — a next step, experiment, or further reading"],
+  "goDeeper": ["A specific follow-up question that goes deeper into a mechanism, implication, or related concept"],
+  "sourceRegistry": [{ "url": "...", "domain": "...", "credibilityTier": "high", "keyInsight": "..." }]
 }
 
-RULES: 3 mechanisms max. 2 misconceptions. Plain language throughout — if a 16-year-old couldn't follow it, simplify.`
+RULES: 3 mechanisms max. 2 misconceptions. 2 go-deeper questions. Plain language throughout — if a 16-year-old couldn't follow it, simplify.`

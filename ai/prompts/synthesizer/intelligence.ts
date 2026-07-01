@@ -14,10 +14,8 @@ Output ONLY a JSON object:
   "implications": "2–3 sentences. The strategic 'so what?' — what this analysis means for decisions, investments, or actions the user should be considering right now.",
   "adversarialReview": "1 sentence: what this analysis might be getting wrong or missing.",
   "actionableNextSteps": ["What to do with this understanding"],
-  "sourceRegistry": [{ "url": "...", "domain": "...", "credibilityTier": "high", "keyInsight": "..." }],
-
-  "expertConsensus": "", "misconceptions": [], "risks": [], "goDeeper": [],
-  "decisionCriteria": [], "decisionOptions": [], "winner": "", "winnerRationale": "", "tradeoff": "", "contraryPick": "", "killConditions": []
+  "goDeeper": ["A specific follow-up question to investigate a pattern or implication further"],
+  "sourceRegistry": [{ "url": "...", "domain": "...", "credibilityTier": "high", "keyInsight": "..." }]
 }
 
-RULES: 4 insights max. 3 patterns. 2-3 actions. Each finding should be an insight, not just a fact.`
+RULES: 4 insights max. 3 patterns. 2-3 actions. 2 go-deeper questions. Each finding should be an insight, not just a fact.`

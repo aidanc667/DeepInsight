@@ -20,12 +20,8 @@ Output ONLY a JSON object:
   ],
 
   "commonGround": "2 sentences. What ALL sides actually agree on.",
-  "adversarialReview": "1 sentence: which perspective is underrepresented or missing from this analysis.",
-  "actionableNextSteps": ["How to form your own informed view on this"],
-  "sourceRegistry": [{ "url": "...", "domain": "...", "credibilityTier": "high", "keyInsight": "..." }],
-
-  "overview": "", "keyFindings": [], "expertConsensus": "", "misconceptions": [], "implications": "", "risks": [], "goDeeper": [],
-  "decisionCriteria": [], "decisionOptions": [], "winner": "", "winnerRationale": "", "tradeoff": "", "contraryPick": "", "killConditions": []
+  "goDeeper": ["A specific question that would help someone decide which perspective applies to their situation"],
+  "sourceRegistry": [{ "url": "...", "domain": "...", "credibilityTier": "high", "keyInsight": "..." }]
 }
 
-RULES: 2-3 sides. 3-4 points each. Steel-man every position. Include sources from multiple perspectives.`
+RULES: 2-3 sides. 3-4 points each. Steel-man every position. 2 go-deeper questions. Include sources from multiple perspectives.`

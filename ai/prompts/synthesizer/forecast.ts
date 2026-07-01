@@ -34,9 +34,6 @@ Output ONLY a JSON object:
 
   "adversarialReview": "1–2 sentences. What would make this forecast wrong? What's the biggest uncertainty?",
 
-  "actionableNextSteps": ["Specific action to take given this forecast"],
-  // 3 steps max — each one concrete and tied to the forecast
-
   "goDeeper": ["Specific follow-up question about a signal or implication"],
   // 2 questions
 
