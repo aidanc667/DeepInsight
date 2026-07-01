@@ -66,7 +66,6 @@ export interface DecisionBreakdown {
 export interface EvidenceAndInsights {
   overview: string
   keyFindings: ResearchFinding[]
-  expertConsensus: string
 }
 
 export interface WhatThisMisses {
@@ -197,9 +196,8 @@ export function toStructuredOutput(raw: Partial<EliteResearchOutput>): Structure
 
     // ── Research (SCOUT) ────────────────────────────────────────────────────
     evidenceAndInsights: {
-      overview:        raw.overview        ?? '',
-      keyFindings:     raw.keyFindings?.filter((f): f is ResearchFinding => !!f?.finding) ?? [],
-      expertConsensus: raw.expertConsensus ?? '',
+      overview:    raw.overview    ?? '',
+      keyFindings: raw.keyFindings?.filter((f): f is ResearchFinding => !!f?.finding) ?? [],
     },
 
     // ── Perspectives (ECHO) ─────────────────────────────────────────────────

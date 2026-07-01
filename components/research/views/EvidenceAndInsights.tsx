@@ -1,12 +1,12 @@
 'use client'
 
-import { Lightbulb, CheckCircle2 } from 'lucide-react'
+import { Lightbulb } from 'lucide-react'
 import { Card, Label, ConfidencePip } from './primitives'
 import type { StructuredOutput } from '@/ai/output/structured-output'
 
 export function EvidenceAndInsights({ data, delay }: { data: StructuredOutput['evidenceAndInsights']; delay: number }) {
-  const { overview, keyFindings, expertConsensus } = data
-  if (!overview && keyFindings.length === 0 && !expertConsensus) return null
+  const { overview, keyFindings } = data
+  if (!overview && keyFindings.length === 0) return null
 
   return (
     <div className="space-y-3.5">
@@ -71,21 +71,6 @@ export function EvidenceAndInsights({ data, delay }: { data: StructuredOutput['e
         </Card>
       )}
 
-      {expertConsensus && (
-        <Card delay={delay + 0.015}>
-          <div className="p-5">
-            <div className="flex items-center gap-2 mb-3.5">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-              <Label>Expert Consensus</Label>
-            </div>
-            <div className="space-y-2.5">
-              {expertConsensus.split('\n').filter(Boolean).map((para, i) => (
-                <p key={i} className="report-body">{para}</p>
-              ))}
-            </div>
-          </div>
-        </Card>
-      )}
     </div>
   )
 }

@@ -73,6 +73,17 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
   const clarificationContext = forceProceed ? undefined : input.clarificationContext
 
 
+  // ── Pre-Phase 1: Start Gemini on raw query immediately ───────────────────
+  // Fire before classify resolves to eliminate the sequential Phase1→Phase2 gap.
+  // If the classified mode doesn't use Gemini (SAGE/ECHO), the result is discarded.
+  // Cost: occasional wasted Gemini call. Benefit: saves ~1–2s on all other runs.
+  const emptyClaudeResponse  = { modelId: 'claude' as const, rawText: '', citations: [], latencyMs: 0 }
+  const emptyGeminiResponse  = { modelId: 'gemini' as const, rawText: '', citations: [], latencyMs: 0 }
+
+  const earlyGeminiPromise = (!clientMode && !prefetchedGemini)
+    ? callGemini(prompt).catch(() => emptyGeminiResponse)
+    : null
+
   // ── Phase 1: Classify + Plan in parallel (both Haiku — fast) ──────────────
   const [{ mode, confidence: modeConfidence }, plan] = await Promise.all([
     clientMode && QUERY_MODES.includes(clientMode as QueryMode)
@@ -115,9 +126,6 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
   // Gemini live search: skip for SAGE (explainer) and ECHO (perspectives) —
   // they need reasoning over knowledge, not real-time web data.
   const GEMINI_SEARCH_MODES = new Set(['decision', 'research', 'intelligence', 'competitive', 'action', 'forecast'])
-  const emptyClaudeResponse  = { modelId: 'claude' as const, rawText: '', citations: [], latencyMs: 0 }
-  const emptyGeminiResponse  = { modelId: 'gemini' as const, rawText: '', citations: [], latencyMs: 0 }
-
   // If the client pre-fired Gemini during clarification, reuse those results
   // instead of calling Gemini again — saves 3–8s on the critical path.
   const prefetchedGeminiResponse = prefetchedGemini
@@ -149,7 +157,9 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
   const [claudeResult, geminiResult] = await Promise.allSettled([
     CLAUDE_REASONING_MODES.has(mode) ? callClaude(researchPrompt) : Promise.resolve(emptyClaudeResponse),
     GEMINI_SEARCH_MODES.has(mode)
-      ? (prefetchedGeminiResponse ? Promise.resolve(prefetchedGeminiResponse) : callGemini(geminiPrompt))
+      ? (prefetchedGeminiResponse
+          ? Promise.resolve(prefetchedGeminiResponse)
+          : (earlyGeminiPromise ?? callGemini(geminiPrompt)))
       : Promise.resolve(emptyGeminiResponse),
   ])
 

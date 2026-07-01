@@ -14,36 +14,36 @@ export interface ModeConfig {
 
 export const MODES: Record<QueryMode, ModeConfig> = {
   forecast: {
-    cap: 3,
-    stopCondition: 'You know the topic domain AND their time horizon or decision context',
+    cap: 2,
+    stopCondition: 'You know their time horizon AND decision context — both are required to give a grounded forecast',
   },
   decision: {
     cap: 5,
-    stopCondition: 'You know the specific options being compared AND at least one key constraint (budget, must-haves)',
+    stopCondition: 'You know the specific options being compared AND at least one key constraint (budget, must-haves, or priorities)',
   },
   action: {
     cap: 5,
-    stopCondition: 'You know their starting point AND available resources or timeline',
+    stopCondition: 'You know their starting point AND at least one of: goal/timeline, available resources, or biggest obstacle',
   },
   explainer: {
     cap: 2,
-    stopCondition: 'You know their background level — that alone shapes the entire explanation',
+    stopCondition: 'You know their background level — that alone shapes every analogy, term, and depth level',
   },
   perspectives: {
     cap: 3,
-    stopCondition: 'The debate topic and their stakes are clear',
+    stopCondition: 'The debate topic is clear AND you know why they need this (decision, forming opinion, research, or debate)',
   },
   intelligence: {
     cap: 3,
-    stopCondition: 'The angle and use case are clear',
+    stopCondition: 'The angle and use case are clear — you know what dimension matters and why they need it',
   },
   competitive: {
     cap: 3,
-    stopCondition: 'The specific claim being challenged is clear',
+    stopCondition: 'The specific claim or position being challenged is clear',
   },
   research: {
-    cap: 3,
-    stopCondition: 'You know their objective AND at least one key constraint or context factor',
+    cap: 4,
+    stopCondition: 'You know their objective AND at least two key context factors (background, constraints, use case, or scope)',
   },
 }
 
@@ -74,141 +74,137 @@ export function inferMode(prompt: string): QueryMode {
 export function getModeInstructions(mode: string, cap: number): string {
   switch (mode) {
     case 'decision':
-      return `DECISION MODE — The user needs a concrete recommendation. You must know enough to give one.
+      return `DECISION MODE — The user needs a concrete, personalized recommendation.
 
-Ask ${cap} questions covering these dimensions (highest-impact first):
-1. BUDGET / PRICE RANGE — Without this, any recommendation could be completely wrong for them
-2. PRIMARY USE CASE — What will this actually be used for day-to-day?
-3. MUST-HAVES vs. NICE-TO-HAVES — What are their non-negotiables?
-4. CURRENT SITUATION — What do they have now? What are they replacing or upgrading from?
-5. RISK / PRIORITY — Do they prioritise reliability, performance, value, prestige?
+Consider these dimensions and ask about the ones most critical for THIS specific query.
+Reorder by what would most change your recommendation — and SKIP any that don't apply:
+- BUDGET / PRICE RANGE — Essential for purchases; skip entirely for non-purchase decisions (health choices, career moves, relationships)
+- PRIMARY USE CASE — What will this actually be used for day-to-day?
+- MUST-HAVES vs. NICE-TO-HAVES — What are their hard non-negotiables?
+- CURRENT SITUATION — What do they have now / what are they coming from?
+- RISK / PRIORITY — Reliability vs. performance vs. value vs. prestige vs. simplicity?
+- TIMELINE / URGENCY — When do they need to decide or have this in place?
 
-OPTION RULES — these are critical:
-- Budget: always use SPECIFIC dollar ranges spanning low to high for this exact domain
+Ask up to ${cap} questions. Lead with whichever dimension is MOST missing from the query — not always budget. Never ask about something the user already stated.
+
+OPTION RULES — critical for making answers feel expert:
+- Budget: SPECIFIC dollar ranges spanning low to high for this domain
   e.g. cars: "$15k–$25k", "$25k–$40k", "$40k–$60k", "$60k+"
-  e.g. software: "Under $50/mo", "$50–$200/mo", "$200–$500/mo", "Enterprise/custom"
-- Use case: list REAL scenarios, not abstract categories
-  e.g. cars: "Daily commuting under 30 miles", "Road trips & highway driving", "Family hauler with kids/cargo", "Weekend performance/fun"
-- Must-haves: list CONCRETE features with real terms, not vague descriptors
-- Never ask about options/choices the user already stated in their query
-
-Aim for ${cap} questions. Only ask fewer if the user already stated those dimensions clearly.`
+  e.g. SaaS tools: "Under $50/mo", "$50–$200/mo", "$200–$500/mo", "Enterprise pricing"
+- Use case: real, named scenarios from this domain — not abstract categories
+  e.g. cars: "Daily commute under 30 miles", "Family hauler with 2+ kids", "Long road trips", "Weekend driving fun"
+- Must-haves: concrete domain-specific features, not vague descriptors
+- Span the full realistic range — don't cluster options in the middle`
 
     case 'action':
-      return `ACTION MODE — The user needs a personalized step-by-step plan. You must know their starting point and constraints.
+      return `ACTION MODE — The user needs a step-by-step plan tailored to their exact situation.
 
-Ask ${cap} questions covering these dimensions (highest-impact first):
-1. CURRENT STARTING POINT — Where are they RIGHT NOW? This determines step 1.
-2. AVAILABLE RESOURCES — Budget + time per week. Both shape the entire plan.
-3. SPECIFIC GOAL / SUCCESS METRIC — What does "done" look like? By when?
-4. BIGGEST OBSTACLE — What's the hardest part for them specifically?
-5. CONSTRAINTS — Hard limits: tools they can't use, things they must avoid
+Consider these dimensions and lead with whichever is LEAST clear from the query:
+- CURRENT STARTING POINT — Where are they right now? This determines step 1.
+- GOAL / SUCCESS METRIC — What does "done" look like? By when?
+- AVAILABLE RESOURCES — Time per week AND budget (skip budget if clearly irrelevant to this type of task)
+- BIGGEST OBSTACLE — What's the hardest part for them specifically?
+- CONSTRAINTS — Hard limits: tools they can't use, things they must avoid
+
+Ask up to ${cap} questions. Skip any dimension already clearly stated.
 
 OPTION RULES:
-- Starting point: span beginner → advanced with realistic milestones for this domain
-- Timeline: specific durations ("Within 2 weeks", "1–3 months", "3–6 months", "6–12 months", "No hard deadline")
-- Budget: SPECIFIC dollar ranges appropriate to this domain
-- Goals: concrete, measurable outcomes — not vague aspirations
-
-Aim for ${cap} questions. Only ask fewer if starting point + goal + timeline are already stated.`
+- Starting point: span beginner → experienced with realistic domain-specific milestones
+- Timeline: specific durations, never vague ("Within 2 weeks", "1–3 months", "3–6 months", "6–12 months", "No deadline")
+- Budget: SPECIFIC dollar ranges for this domain; skip the question entirely if budget is irrelevant
+- Goals: concrete, measurable outcomes tied to this specific task — not generic aspirations`
 
     case 'explainer':
-      return `EXPLAINER MODE — The explanation needs to match their background perfectly.
+      return `EXPLAINER MODE — The explanation must be calibrated to their exact background level.
 
 Ask up to ${cap} questions:
-1. BACKGROUND LEVEL — This is ALWAYS worth asking. Shapes every analogy, term, and depth level.
-   Use EXACTLY these 4 options:
-   - "Complete beginner — no prior knowledge"
-   - "Some familiarity — I know the basics"
+1. BACKGROUND LEVEL — Always ask this first. It shapes every analogy, term choice, and depth level.
+   Use EXACTLY these 4 options (verbatim):
+   - "Complete beginner — I have no prior knowledge of this"
+   - "Some familiarity — I know the basics but not the details"
    - "Intermediate — I understand the core concepts"
-   - "Advanced — looking for nuance and edge cases"
+   - "Advanced — I want nuance, edge cases, and depth"
 
-2. SPECIFIC ANGLE (if the topic is broad) — What aspect matters most to them?
-   Generate 4 concrete, topic-specific options (not generic categories)
-
-Only ask the angle question if the topic is genuinely multi-faceted. If it's narrow, just ask background.`
+2. SPECIFIC ANGLE (only if the topic is genuinely multi-faceted) — What aspect matters most?
+   Generate 4 concrete, topic-specific options that represent meaningfully different sub-topics.
+   Skip this question if the topic is already narrow and focused.`
 
     case 'perspectives':
-      return `PERSPECTIVES MODE — The user wants to understand a debate or contested topic.
+      return `PERSPECTIVES MODE — The user wants to understand a genuinely contested debate.
 
-Ask up to ${cap} questions:
-1. STAKES — Why do they need this? Are they making a decision, writing/arguing something, or just curious?
-   Options: "Making a personal decision based on this", "Forming my own informed opinion", "Academic research or debate", "Understanding both sides before choosing a side"
+Ask up to ${cap} questions — tailor every option to THIS exact topic:
+1. PURPOSE — Why do they need this? What will they do with it?
+   Options: "Making a personal decision that depends on this", "Forming my own informed opinion", "Academic research or structured debate", "I need to argue one side effectively"
 
-2. SPECIFIC DIMENSION — Which aspect of this debate is most relevant to them?
-   Generate 4 concrete options specific to THIS exact debate topic.
+2. SPECIFIC DIMENSION — Which aspect of this debate matters most to them?
+   Generate 4 concrete options specific to THIS exact controversy — not generic sub-topics.
+   e.g. for "nuclear energy": "Safety and accident risk", "Cost vs. other clean energy", "Role in climate change strategy", "Waste storage and long-term risk"
 
-3. CURRENT LEAN — Do they already have a leaning they want challenged, or are they genuinely open?
-   Options: "I lean [one side] but want to understand the counterarguments", "I'm genuinely undecided", "I think I know my view but want it stress-tested", "I disagree with mainstream opinion and want support"
-
-OPTION RULES: All options must be tailored to the specific topic — no generic placeholders.`
+3. CURRENT LEAN — What's their starting position?
+   Options tailored to the specific debate — e.g. "I support [X] but want to understand the strongest counterarguments", "Genuinely undecided", "Skeptical of the mainstream view", "I want my current view stress-tested"`
 
     case 'intelligence':
-      return `INTELLIGENCE MODE — The user wants current, specific insights on a topic.
+      return `INTELLIGENCE MODE — The user wants current, specific insights, not a general overview.
 
-Ask up to ${cap} questions:
-1. SPECIFIC ANGLE / LENS — Which dimension of this topic matters most?
-   Generate 4 concrete, domain-specific angles (sector, geography, time horizon, stakeholder type)
+Ask up to ${cap} questions — all options must be specific to THIS exact topic:
+1. SPECIFIC ANGLE — Which dimension of this topic matters most right now?
+   Generate 4 concrete angles tied to this exact subject (sector, geography, stakeholder, technology, regulatory dimension)
 
-2. USE CASE — Why do they need this intelligence right now?
-   Options: "Evaluating an investment or financial decision", "Professional context — work/industry research", "Academic or journalistic research", "Personal curiosity and general understanding"
+2. USE CASE — Why do they need this intelligence?
+   Options: "Evaluating an investment or financial decision", "Professional context — industry or competitive research", "Academic or journalistic research", "Personal curiosity and general understanding"
 
-3. RECENCY vs. DEPTH — What balance do they need?
-   Options: "Latest developments in the past 3–6 months", "The past 1–2 years of meaningful change", "Historical trajectory to understand the present", "Both current state AND historical context"
-
-OPTION RULES: Angle options must be specific to the exact topic, not generic categories.`
+3. RECENCY vs. DEPTH — What balance matters most?
+   Options: "Latest developments in the past 3–6 months only", "Past 1–2 years of meaningful change", "Historical trajectory that explains the present state", "Both: where it is now AND how it got there"`
 
     case 'competitive':
-      return `COMPETITIVE / CHALLENGE MODE — The user wants something pressure-tested or critically examined.
+      return `COMPETITIVE / CHALLENGE MODE — The user wants rigorous pressure-testing of a claim or position.
 
 Ask up to ${cap} questions:
-1. SPECIFIC CLAIM OR POSITION — What exactly needs to be challenged?
-   Generate 4 concrete options based on the most common positions on this exact topic.
+1. SPECIFIC CLAIM — What exactly needs to be challenged or stress-tested?
+   Generate 4 concrete options based on the most common positions held on THIS exact topic.
+   These must be real stances people actually take — not abstract categories.
 
-2. STAKES — What decision or action depends on this analysis?
-   Options: "I'm about to commit to this — want to find flaws first", "I'm debating someone who holds this view", "I'm writing/presenting and need the strongest counterarguments", "I want to understand if this is as good/bad as people say"
+2. WHAT'S AT STAKE — What decision or action depends on this analysis?
+   Options: "I'm about to commit to this — I need to find the flaws first", "I need to counter this argument in a debate or discussion", "I'm writing about this and need the strongest opposing case", "I want to know if this is as good/risky/important as claimed"
 
-3. ANGLE OF ATTACK — Which type of weakness to focus on?
-   Options: "Factual errors or misleading statistics", "Hidden assumptions that might not hold", "What gets left out of this argument", "Real-world failure cases and exceptions"
-
-OPTION RULES: Claim options must reflect REAL positions people actually hold on this topic.`
+3. ANGLE OF ATTACK — What type of weakness should the challenge focus on?
+   Options: "Factual errors or misleading statistics in the argument", "Hidden assumptions that break down under scrutiny", "What the argument omits or deliberately ignores", "Real-world cases where this failed or backfired"`
 
     case 'forecast':
       return `FORECAST MODE — The user wants forward-looking predictions, not current state.
 
 Ask up to ${cap} questions:
 1. TIME HORIZON — How far out are they looking?
-   Options: "Next 3–6 months", "1–2 years out", "3–5 year view", "Long-term / 5–10 years"
+   Options: "Next 3–6 months", "1–2 years out", "3–5 year view", "5–10+ years"
 
-2. DECISION CONTEXT — What will they DO with this forecast? This shapes which signals matter.
-   Options: "Investment or financial decision", "Business strategy or product roadmap", "Career or personal planning", "General intelligence and curiosity"
+2. DECISION CONTEXT — What will they DO with this forecast? This shapes which signals matter most.
+   Options: "Investment or financial decision I need to make", "Business strategy or product roadmap planning", "Career or personal life planning", "General intelligence — I want to understand where this is heading"
 
-3. ANGLE (if the topic is broad) — Which aspect of this topic's future matters most?
-   Generate 4 concrete, topic-specific options.
-
-OPTION RULES: Time horizon and decision context options should always be specific. Angle options must be tailored to the exact topic.
-
-Only ask fewer if the time horizon and decision context are already stated in the query.`
+OPTION RULES: Both questions are always relevant. Only skip one if the answer is explicitly stated in the query.`
 
     default: // research + general
-      return `RESEARCH MODE — The user wants thorough, expert-level information.
+      return `RESEARCH MODE — The user wants thorough, expert-level information on a specific topic.
 
-Ask up to ${cap} questions covering the highest-impact unknowns:
+Ask up to ${cap} questions covering the highest-impact gaps. For each, generate options that are REAL and SPECIFIC to this exact topic:
+
 1. SPECIFIC OBJECTIVE — What will they DO with this information?
-   Generate 4 concrete, realistic end-goals specific to this exact topic.
+   Generate 4 concrete, realistic end-goals specific to this exact topic and domain.
 
-2. RELEVANT CONTEXT — What's their current situation that shapes what's relevant?
-   Generate 4 concrete options covering the most common real-world contexts for this topic.
+2. CONTEXT / SITUATION — What's their current situation that makes certain angles more relevant?
+   Generate 4 concrete options representing the most common real-world starting points for this topic.
 
-3. CONSTRAINTS / SCOPE — What limits the answer? Budget, geography, timeline, expertise level?
-   Generate 4 concrete options with real values/ranges for this domain.
+3. SCOPE / CONSTRAINTS — What should shape the depth and focus of the answer?
+   Generate 4 concrete options with real values — geography, budget range, expertise level, time horizon, or domain sub-scope.
 
-OPTION RULES:
-- Every option must be a REAL scenario or value — no vague tiers or catch-alls
-- Use actual numbers, names, and domain-specific terminology
-- Span the full realistic range — don't cluster options together
-- Phrase like a knowledgeable friend, not a form field
+4. SPECIFIC ANGLE (only if the topic is broad) — Which sub-topic matters most?
+   Generate 4 concrete sub-topics specific to this subject. Skip if the query is already focused.
 
-Aim for ${cap} questions. Fewer only if objective and context are already clear from the query.`
+OPTION RULES — non-negotiable:
+- Every option must be a real, specific value — no vague tiers ("budget-friendly", "mid-range") or catch-alls
+- Use domain-specific terminology, real numbers, and named examples where possible
+- Span the full realistic range — don't cluster options together in the middle
+- Phrase naturally, like a knowledgeable expert talking to a peer
+
+Ask up to ${cap} questions. Fewer only if objective and context are already clearly stated.`
   }
 }

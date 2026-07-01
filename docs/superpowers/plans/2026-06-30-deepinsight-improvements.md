@@ -1,565 +1,408 @@
-# DeepInsight Improvements Implementation Plan
+# DeepInsight AI Quality & Speed Improvements
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Harden the DeepInsight research pipeline against five identified failure modes — stale dates in prompts, orphaned follow-up submissions, untested trust score math, incomplete SSRF protection, and a 1,268-LOC rendering monolith.
+**Goal:** Implement 5 Opus-advisor recommendations: AI-selected expert personas, adaptive clarification dimensions, steelman-first in TITAN, parallel Gemini prefetch, and trimmed/differentiated NOVA/CIPHER.
 
-**Architecture:** Five independent, sequenced fixes in order of blast radius. Tasks 1, 2, and 5 are surgical one-function changes. Task 3 introduces a new `lib/trust-score.ts` module with tests. Task 4 splits `StructuredOutputView.tsx` into `components/research/views/` sub-files with a thin orchestrator shell. No changes to the AI pipeline or API routes.
+**Architecture:** Mostly prompt + config changes; one pipeline change (fire Gemini alongside Phase 1); one schema change (drop expertConsensus from NOVA); no new routes needed.
 
-**Tech Stack:** Next.js 15 App Router, TypeScript, Vitest (for unit tests), React, `@ai-sdk/react`
-
----
-
-## File Map
-
-| File | Change |
-|---|---|
-| `ai/prompts/synthesizer/preamble.ts` | Convert module constants → function |
-| `ai/prompts/synthesizer/forecast.ts` | Remove module-level `CURRENT_YEAR`, call inline |
-| `ai/prompts/synthesizer/action.ts` + 6 others | Call `getMethodologyPreamble()` instead of referencing constant |
-| `app/page.tsx` | Extract trust score inline → `computeTrustScore()`; fix `.then()` → `await` |
-| `lib/trust-score.ts` | **NEW** — pure `computeTrustScore` function + `TrustScore` type |
-| `lib/trust-score.test.ts` | **NEW** — four unit tests |
-| `ai/nodes/sources.ts` | Harden `isSafeUrl` with CGNAT + decimal IP + localhost checks |
-| `components/research/StructuredOutputView.tsx` | Reduce to <100 LOC orchestrator shell |
-| `components/research/views/primitives.tsx` | **NEW** — `Label`, `ConfidencePip`, `CredibilityPip`, `Card`, `scoreColor` |
-| `components/research/views/ExecutiveAnswer.tsx` | **NEW** — extracted component |
-| `components/research/views/DecisionBreakdown.tsx` | **NEW** — extracted component |
-| `components/research/views/EvidenceAndInsights.tsx` | **NEW** — extracted component |
-| `components/research/views/Risks.tsx` | **NEW** — extracted component |
-| `components/research/views/WhatThisMisses.tsx` | **NEW** — extracted component |
-| `components/research/views/ActionPlan.tsx` | **NEW** — extracted component |
-| `components/research/views/GoDeeperCard.tsx` | **NEW** — extracted component |
-| `components/research/views/Sources.tsx` | **NEW** — extracted component |
-| `components/research/views/PerspectivesView.tsx` | **NEW** — extracted component |
-| `components/research/views/ChallengeView.tsx` | **NEW** — extracted component |
-| `components/research/views/ExecutionView.tsx` | **NEW** — extracted component |
-| `components/research/views/AnalysisView.tsx` | **NEW** — extracted component |
-| `components/research/views/UnderstandingView.tsx` | **NEW** — extracted component |
-| `components/research/views/ForecastView.tsx` | **NEW** — extracted component |
+**Tech Stack:** Next.js App Router, Claude Haiku (classify + clarify), Claude Sonnet (synthesize), Gemini Flash (web search), AI SDK v6, Zod schemas
 
 ---
 
-## Task 1: Fix Stale Date in Preamble
+## Task 1: AI-selected expert persona (replace keyword routing)
 
-**Why:** `METHODOLOGY_PREAMBLE` is evaluated once at module load. On a warm Vercel instance spanning midnight, every prompt tells the model "Today is yesterday." All 8 synthesizer modes are affected because they all import this constant.
+Currently `getExpertPersona(prompt)` does brittle keyword matching across 13 domains before the model sees the query. Fix: add a `domain` field to the classifier output so Haiku picks the domain, then pass it to the clarify routes.
 
 **Files:**
-- Modify: `ai/prompts/synthesizer/preamble.ts`
-- Modify: `ai/prompts/synthesizer/forecast.ts`
-- Modify: `ai/prompts/synthesizer/action.ts`
-- Modify: `ai/prompts/synthesizer/challenge.ts`
-- Modify: `ai/prompts/synthesizer/decision.ts`
-- Modify: `ai/prompts/synthesizer/explainer.ts`
-- Modify: `ai/prompts/synthesizer/intelligence.ts`
-- Modify: `ai/prompts/synthesizer/perspectives.ts`
-- Modify: `ai/prompts/synthesizer/research.ts`
+- Modify: `ai/schemas/index.ts` — add `domain` + `DOMAIN_NAMES` to `QueryClassifierSchema`
+- Modify: `ai/prompts/classifier.ts` — add DOMAIN section to classifier prompt
+- Modify: `app/page.tsx` — pass `domain` from classify result to clarify/plan and clarify/next
+- Modify: `app/api/clarify/plan/route.ts` — accept `domain` param, use it instead of keyword detection
+- Modify: `app/api/clarify/next/route.ts` — accept `domain` param, use it instead of keyword detection
 
-- [ ] **Step 1: Rewrite `preamble.ts` as a function**
+**Steps:**
 
-Replace the entire contents of `ai/prompts/synthesizer/preamble.ts` with:
+- [ ] **Step 1: Add `DOMAIN_NAMES` and `domain` field to QueryClassifierSchema**
 
-```typescript
-export function getMethodologyPreamble(): string {
-  const CURRENT_DATE = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-  const CURRENT_YEAR = new Date().getFullYear()
+In `ai/schemas/index.ts`, before `QueryClassifierSchema`:
 
-  return `Today's date: ${CURRENT_DATE}. Always use ${CURRENT_YEAR} data — flag anything older than 12 months as potentially outdated.
+```ts
+export const DOMAIN_NAMES = [
+  'automotive', 'finance', 'real_estate', 'health', 'technology', 'legal',
+  'career', 'nutrition', 'business', 'travel', 'education', 'parenting', 'general',
+] as const
+export type DomainName = typeof DOMAIN_NAMES[number]
+```
 
-Before writing JSON, mentally work through these steps:
-1. UNDERSTAND: What is the user really asking? What's the underlying goal?
-2. CONSTRAINTS: What hard constraints did the user state (budget, timeline, must-haves)? List them. Every recommendation MUST satisfy these as-stated — no workarounds.
-3. SUB-QUESTIONS: What specific questions must be answered to fully address this?
-4. SOURCES: Which Gemini search results are most relevant and credible?
-5. SOURCE QUALITY: Rank sources — gov/edu/major news > industry pubs > blogs. Flag anything thin.
-6. RECENCY: Are the facts current? Prefer ${CURRENT_YEAR}/${CURRENT_YEAR - 1} data. Flag stale data explicitly.
-7. INSIGHTS: Extract specific facts, numbers, names, dates from the research.
-8. CONFLICTS: Where do Claude and Gemini disagree? Pick the better-sourced position.
-9. CONSTRAINT CHECK: Before writing winner/recommendation — does it genuinely satisfy the constraints from step 2? If an option only fits budget as a used model or different trim, name THAT specific variant ("2023 Toyota RAV4 Hybrid (used, $28k–$34k)") — not the new or idealized version. Never recommend Option A in one field and describe a different version of it in another.
-10. SYNTHESIZE: Write JSON that is internally consistent — no field should contradict another.
-11. UNCERTAINTY: In adversarialReview, flag anything unverified, outdated, or assumption-based.
-12. ATTRIBUTION: For every keyFinding, populate attributedSources with 1–3 domain names that directly support the claim. Use exact domain strings (e.g. "edmunds.com", "cdc.gov"). Do not guess.
+Then update `QueryClassifierSchema`:
 
-Only THEN output the JSON. Be concise and specific throughout.\n\n`
+```ts
+export const QueryClassifierSchema = z.object({
+  mode: z.enum(QUERY_MODES),
+  confidence: z.number(),
+  reasoning: z.string(),
+  modeLabel: z.string(),
+  domain: z.enum(DOMAIN_NAMES).default('general'),
+})
+```
+
+And add the type export at the bottom:
+
+```ts
+export type QueryClassifier = z.infer<typeof QueryClassifierSchema>
+```
+
+- [ ] **Step 2: Update classifier prompt to output domain**
+
+In `ai/prompts/classifier.ts`, add a DOMAIN block to `CLASSIFIER_SYSTEM_PROMPT` after the MODES section and before "Rules:", then update "Return JSON only." to include domain:
+
+```
+DOMAIN — pick the single best match for the expert who should answer this:
+- automotive: cars, vehicles, buying/leasing, EV, reliability
+- finance: investing, stocks, crypto, retirement, budgeting, wealth
+- real_estate: buying/renting homes, mortgages, property investment
+- health: medical symptoms, treatments, medications, mental health
+- technology: software, hardware, programming, AI, cloud, devices
+- legal: law, contracts, rights, compliance, immigration, estate planning
+- career: jobs, salary negotiation, resumes, promotions, career change
+- nutrition: diet, weight loss, meal planning, supplements, macros
+- business: startups, entrepreneurship, marketing, growth, fundraising
+- travel: flights, hotels, destinations, itineraries, points/miles
+- education: college admissions, degrees, certifications
+- parenting: kids, babies, child development, family decisions
+- general: cross-domain or anything that doesn't fit a single domain above
+```
+
+- [ ] **Step 3: Read app/page.tsx to find where domain should be passed**
+
+```bash
+grep -n "clarify/plan\|clarify/next\|classif" app/page.tsx | head -30
+```
+
+Find the fetch calls for `/api/clarify/plan` and `/api/clarify/next`, and the classify result destructuring. Then edit to pass `domain` from the classify result through both clarify calls.
+
+- [ ] **Step 4: Update clarify/plan to use AI-selected domain**
+
+In `app/api/clarify/plan/route.ts`, destructure `domain` from request body:
+
+```ts
+const { prompt: rawPrompt, mode: modeHint, domain } = await req.json() as {
+  prompt: string; mode?: string; domain?: string
 }
 ```
 
-- [ ] **Step 2: Update all 8 synthesizer imports**
+Replace the `getExpertPersona` call:
 
-In each of these files — `action.ts`, `challenge.ts`, `decision.ts`, `explainer.ts`, `intelligence.ts`, `perspectives.ts`, `research.ts` — update the import and usage:
+```ts
+import { EXPERT_PERSONAS } from '@/ai/prompts/expert-personas'
+import type { DomainName } from '@/ai/schemas'
 
-```typescript
-// Before:
-import { METHODOLOGY_PREAMBLE } from './preamble'
-export const SOME_SYSTEM = `${METHODOLOGY_PREAMBLE}...`
-
-// After:
-import { getMethodologyPreamble } from './preamble'
-export const SOME_SYSTEM = `${getMethodologyPreamble()}...`
+// OLD: const { title, description } = getExpertPersona(prompt)
+// NEW:
+const persona = EXPERT_PERSONAS[(domain as DomainName) ?? 'general'] ?? EXPERT_PERSONAS.general
+const { title, description } = persona
 ```
 
-- [ ] **Step 3: Fix `forecast.ts` — remove its own module-level `CURRENT_YEAR`**
+Remove the `getExpertPersona` import.
 
-In `ai/prompts/synthesizer/forecast.ts`, remove the line:
-```typescript
-const CURRENT_YEAR = new Date().getFullYear()
-```
-The `getMethodologyPreamble()` call already embeds `CURRENT_YEAR` in the returned string. If `forecast.ts` uses `CURRENT_YEAR` elsewhere in its template, inline the call: replace `${CURRENT_YEAR}` with `${new Date().getFullYear()}`.
+- [ ] **Step 5: Update clarify/next to use AI-selected domain**
 
-- [ ] **Step 4: Verify no module-level date constants remain**
-
-Run:
-```bash
-grep -rn "const CURRENT_DATE\|const CURRENT_YEAR" ai/prompts/synthesizer/
-```
-Expected: no output (all cleared).
-
-- [ ] **Step 5: Verify the server still builds**
-
-```bash
-npx tsc --noEmit
-```
-Expected: no type errors.
+Same pattern in `app/api/clarify/next/route.ts`. Add `domain` to destructuring, update `buildSystem()` signature to accept `domain?: string`, look up persona by domain key instead of calling `getExpertPersona`.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add ai/prompts/synthesizer/
-git commit -m "fix: compute preamble date at call time, not module load"
+git add ai/schemas/index.ts ai/prompts/classifier.ts app/page.tsx app/api/clarify/plan/route.ts app/api/clarify/next/route.ts
+git commit -m "feat: AI-selected expert domain replaces keyword persona routing"
 ```
 
 ---
 
-## Task 2: Fix Follow-Up Research Orphaned Promise
+## Task 2: Adaptive clarification dimensions (skip inapplicable, reorder by query)
 
-**Why:** `handleContinueResearch` fires `loadSessions().then(prior => submit(...))` — a floating promise on a non-async callback. If `loadSessions` is slow or throws (e.g. IndexedDB on mobile), the submit either never fires or fires with empty prior sessions, silently breaking multi-turn research continuity.
+Mode instructions list dimensions in a fixed priority order — decision always asks budget first, even for non-purchase decisions. Fix: change prompt framing from "ask in this order" to "consider these dimensions; skip inapplicable ones; prioritize by what would most change your answer for THIS specific query."
 
 **Files:**
-- Modify: `app/page.tsx` — `handleContinueResearch` callback (lines 346–396)
+- Modify: `ai/config/modes.ts` — update `getModeInstructions()` for decision and action modes (these two have the most rigid ordering; the others are already reasonably flexible)
 
-- [ ] **Step 1: Convert `handleContinueResearch` to async and await session load**
+**Steps:**
 
-Find the `handleContinueResearch` callback (currently `useCallback(() => {`). Change it to `useCallback(async () => {`. Then replace the `.then()` block:
+- [ ] **Step 1: Update decision mode instructions**
 
-```typescript
-// Before:
-loadSessions().then(prior => {
-  submit({
-    prompt:               newPrompt,
-    clarificationContext: prevParts,
-    forceProceed:         true,
-    mode:                 detectedMode,
-    priorSessions:        prior.slice(0, 10),
-  })
-})
+In `getModeInstructions()`, replace the `case 'decision':` return value. Change the opening from:
 
-// After:
-try {
-  const prior = await loadSessions()
-  submit({
-    prompt:               newPrompt,
-    clarificationContext: prevParts,
-    forceProceed:         true,
-    mode:                 detectedMode,
-    priorSessions:        prior.slice(0, 10),
-  })
-} catch {
-  submit({
-    prompt:               newPrompt,
-    clarificationContext: prevParts,
-    forceProceed:         true,
-    mode:                 detectedMode,
-    priorSessions:        [],
-  })
-}
+```
+Ask ${cap} questions covering these dimensions (highest-impact first):
+1. BUDGET / PRICE RANGE — ...
 ```
 
-- [ ] **Step 2: Type-check**
+To:
 
-```bash
-npx tsc --noEmit
 ```
-Expected: no errors.
+Consider these dimensions and ask about the ones MOST CRITICAL for THIS specific query.
+Skip any that clearly don't apply (e.g. skip BUDGET for personal/health/career decisions that have no purchase), and lead with whichever dimension would most change your recommendation:
+
+- BUDGET / PRICE RANGE — Essential for purchases; skip for non-purchase decisions
+- PRIMARY USE CASE — What will this actually be used for day-to-day?
+- MUST-HAVES vs. NICE-TO-HAVES — What are their non-negotiables?
+- CURRENT SITUATION — What do they have now / where are they starting from?
+- RISK / PRIORITY — Reliability vs. performance vs. value vs. relationships?
+- TIMELINE / URGENCY — When do they need to act or decide?
+
+Ask up to ${cap} questions. Only ask fewer if those dimensions are already clearly stated.
+```
+
+- [ ] **Step 2: Update action mode instructions**
+
+Same pattern for `case 'action':`. Change from fixed-order "1. CURRENT STARTING POINT" list to:
+
+```
+Consider these dimensions and ask about the ones most critical for THIS specific plan.
+Lead with whichever dimension is least clear from the query:
+
+- CURRENT STARTING POINT — Where are they right now? This determines step 1.
+- GOAL / SUCCESS METRIC — What does "done" look like, and by when?
+- AVAILABLE RESOURCES — Time per week + budget (skip budget if irrelevant for this type of task)
+- BIGGEST OBSTACLE — What's the hardest part for them specifically?
+- CONSTRAINTS — Hard limits: tools they can't use, things they must avoid
+
+Ask up to ${cap} questions. Start with whichever of starting-point or goal is less clear.
+```
 
 - [ ] **Step 3: Commit**
 
 ```bash
-git add app/page.tsx
-git commit -m "fix: await loadSessions in handleContinueResearch, add fallback submit"
+git add ai/config/modes.ts
+git commit -m "refactor: clarification dimensions adaptive per query, not scripted order"
 ```
 
 ---
 
-## Task 3: Extract Trust Score into a Tested Pure Function
+## Task 3: Steelman first in TITAN (reorder ChallengeView)
 
-**Why:** The trust score formula is embedded inline in the `onFinish` callback with no `modelConfidence` clamping (the audit notes that `result?.confidence ?? 50` flows directly into multiplication — the final `Math.min(100, Math.max(0, T))` clamps the output but not the input coefficients individually). Extracting it enables unit testing and prevents coefficient drift as new modes are added.
+The TITAN mode already has a steelman — `adversarialReview` renders with the label "Steelman" in ChallengeView. But it appears at the bottom, after the critique. A challenge without first stating the strongest form of the argument is less credible. Fix: move steelman to the top, and update the synthesis prompt to reinforce the ordering.
 
 **Files:**
-- Create: `lib/trust-score.ts`
-- Create: `lib/trust-score.test.ts`
-- Modify: `app/page.tsx` — `onFinish` callback (lines 136–184)
+- Modify: `components/research/views/ChallengeView.tsx` — move `adversarialReview` block to render first
+- Modify: `ai/prompts/synthesizer/challenge.ts` — update `adversarialReview` description to say "state strongest form first"
 
-- [ ] **Step 1: Create `lib/trust-score.ts`**
+**Steps:**
 
-```typescript
-import type { TrustScore, EliteResearchOutput } from '@/ai/schemas'
+- [ ] **Step 1: Reorder ChallengeView sections**
 
-const CONFIDENCE_WEIGHT  = 0.30
-const CITATION_WEIGHT    = 0.30
-const COVERAGE_WEIGHT    = 0.25
-const RECENCY_WEIGHT     = 0.15
+In `ChallengeView.tsx`, the current render order is:
+1. verdict
+2. risks
+3. blindSpots + misconceptions
+4. adversarialReview (Steelman) ← move this to position 1
 
-export function computeTrustScore(result: Partial<EliteResearchOutput> | undefined): TrustScore {
-  const sourcesCount    = result?.sourceRegistry?.filter(s => s?.url)?.length ?? 0
-  const highCredSources = result?.sourceRegistry?.filter(s => s?.credibilityTier === 'high')?.length ?? 0
-  const medCredSources  = result?.sourceRegistry?.filter(s => s?.credibilityTier === 'medium')?.length ?? 0
+Move the `adversarialReview` motion.div block to be the first child inside `<div className="space-y-3.5">`.
 
-  // Clamp modelConfidence to [0, 100] before use — AI output may exceed range
-  const modelConfidence = Math.min(100, Math.max(0, result?.confidence ?? 50))
+Update its animation delay from `delay + 0.06` to `delay` (it's now first).
+Shift the other sections' delays: verdict → `delay + 0.02`, risks → `delay + 0.04`, blindSpots/misconceptions → `delay + 0.06`.
 
-  const rawQuality    = (highCredSources * 1.0) + (medCredSources * 0.6) +
-                        ((sourcesCount - highCredSources - medCredSources) * 0.2)
-  const citationScore = sourcesCount > 0 ? Math.min(rawQuality / sourcesCount, 1) : 0.3
-  const coverageScore = Math.min(sourcesCount / 10, 1)
-  const credRatio     = sourcesCount > 0 ? highCredSources / sourcesCount : 0
-  const recencyScore  = 0.45 + credRatio * 0.45
+- [ ] **Step 2: Update CHALLENGE_SYSTEM prompt**
 
-  const T = (CONFIDENCE_WEIGHT * modelConfidence) +
-            (CITATION_WEIGHT   * citationScore * 100) +
-            (COVERAGE_WEIGHT   * coverageScore * 100) +
-            (RECENCY_WEIGHT    * recencyScore  * 100)
+In `ai/prompts/synthesizer/challenge.ts`, update the `adversarialReview` field description:
 
-  const finalScore = Math.round(Math.min(100, Math.max(0, T)))
-  const alertLevel = finalScore >= 72 ? 'green' : finalScore >= 45 ? 'orange' : 'red'
+```
+// Change:
+"adversarialReview": "1-2 sentences. Steelman — what's actually defensible or correct here.",
 
-  return {
-    modelConfidence: Math.round(modelConfidence),
-    citationScore,
-    recencyScore,
-    coverageScore: Math.round(coverageScore * 100),
-    finalScore,
-    alertLevel,
-  }
-}
+// To:
+"adversarialReview": "1-2 sentences. Steel-man the position being challenged: state its STRONGEST version — the best argument in its favor, what's genuinely right or defensible about it. This appears before the critique.",
 ```
 
-- [ ] **Step 2: Create `lib/trust-score.test.ts`**
+Also add a note to RULES: "Steelman goes first — you must acknowledge what's right before dissecting what's wrong."
 
-```typescript
-import { describe, it, expect } from 'vitest'
-import { computeTrustScore } from './trust-score'
-
-describe('computeTrustScore', () => {
-  it('returns alertLevel red when no sources', () => {
-    const score = computeTrustScore({ confidence: 50, sourceRegistry: [] })
-    expect(score.alertLevel).toBe('red')
-    expect(score.finalScore).toBeGreaterThanOrEqual(0)
-  })
-
-  it('returns alertLevel green with 10 high-credibility sources', () => {
-    const highSources = Array.from({ length: 10 }, (_, i) => ({
-      url: `https://example${i}.gov/page`,
-      domain: `example${i}.gov`,
-      credibilityTier: 'high' as const,
-      domainType: 'gov' as const,
-      credibilityScore: 5,
-      tierLabel: 'Government',
-    }))
-    const score = computeTrustScore({ confidence: 85, sourceRegistry: highSources })
-    expect(score.alertLevel).toBe('green')
-    expect(score.finalScore).toBeLessThanOrEqual(100)
-  })
-
-  it('clamps out-of-range confidence: 150 does not produce finalScore > 100', () => {
-    const score = computeTrustScore({ confidence: 150, sourceRegistry: [] })
-    expect(score.finalScore).toBeLessThanOrEqual(100)
-    expect(score.modelConfidence).toBe(100)
-  })
-
-  it('clamps out-of-range confidence: -10 does not produce negative finalScore', () => {
-    const score = computeTrustScore({ confidence: -10, sourceRegistry: [] })
-    expect(score.finalScore).toBeGreaterThanOrEqual(0)
-    expect(score.modelConfidence).toBe(0)
-  })
-})
-```
-
-- [ ] **Step 3: Run tests — verify they pass**
+- [ ] **Step 3: Commit**
 
 ```bash
-npx vitest run lib/trust-score.test.ts
-```
-Expected: 4 tests pass.
-
-- [ ] **Step 4: Replace inline trust score in `app/page.tsx`**
-
-Add the import at the top of `app/page.tsx`:
-```typescript
-import { computeTrustScore } from '@/lib/trust-score'
-```
-
-In the `onFinish` callback, remove the inline trust score block (lines ~140–168) and replace it with:
-```typescript
-setTrustScore(computeTrustScore(result ?? undefined))
-```
-
-The `if (result)` block for `saveSession` and `deepResearch` stays unchanged below that line.
-
-- [ ] **Step 5: Type-check and run tests again**
-
-```bash
-npx tsc --noEmit && npx vitest run lib/trust-score.test.ts
-```
-Expected: no type errors, 4 tests pass.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add lib/trust-score.ts lib/trust-score.test.ts app/page.tsx
-git commit -m "feat: extract trust score to tested pure function with confidence clamping"
+git add components/research/views/ChallengeView.tsx ai/prompts/synthesizer/challenge.ts
+git commit -m "fix: steelman renders first in TITAN before critique sections"
 ```
 
 ---
 
-## Task 4: Harden SSRF Filter in Source Extraction
+## Task 4: Parallelize Gemini web search with Phase 1
 
-**Why:** `isSafeUrl` in `ai/nodes/sources.ts` misses the CGNAT range (`100.64.0.0/10`), decimal-encoded IPs (e.g. `http://2130706433/` = `127.0.0.1`), and `0.0.0.0`. Gemini citation URLs are externally-supplied inputs — an incomplete blocklist is an SSRF vulnerability.
+Currently classify + plan (Phase 1) must fully resolve before Gemini search starts (Phase 2). This is ~1–2s of dead time on every research run. Fix: fire Gemini on the raw query at the start of the pipeline alongside Phase 1. If the resulting mode doesn't use Gemini (SAGE/ECHO), discard the result.
 
 **Files:**
-- Modify: `ai/nodes/sources.ts` — `isSafeUrl` function (lines 81–90)
+- Modify: `ai/graphs/research-pipeline.ts` — fire early Gemini promise before Phase 1 await
 
-- [ ] **Step 1: Replace `isSafeUrl` with hardened version**
+**Steps:**
 
-In `ai/nodes/sources.ts`, replace the `isSafeUrl` function (lines 81–90) with:
-
-```typescript
-// Private/reserved hostname patterns for SSRF protection.
-// Each named constant covers a specific RFC-defined block.
-const LOOPBACK        = /^(localhost|127\.)/i
-const PRIVATE_10      = /^10\./
-const PRIVATE_172     = /^172\.(1[6-9]|2\d|3[01])\./
-const PRIVATE_192     = /^192\.168\./
-const LINK_LOCAL      = /^169\.254\./
-const CGNAT           = /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./  // 100.64.0.0/10
-const IPV6_LOOPBACK   = /^::1$/
-const IPV6_UNIQUE_LOCAL = /^fc[0-9a-f][0-9a-f]:/i
-const IPV6_LINK_LOCAL = /^fe[89ab][0-9a-f]:/i
-const ANY_ADDR        = /^0\.0\.0\.0/
-
-function isSafeUrl(url: string): boolean {
-  try {
-    const { protocol, hostname } = new URL(url)
-    if (protocol !== 'https:' && protocol !== 'http:') return false
-    // Reject decimal-encoded IPs (e.g. http://2130706433/ → 127.0.0.1)
-    if (/^\d+$/.test(hostname)) return false
-    // Reject hostnames with no dot (catches 'localhost' and similar bare names)
-    if (!hostname.includes('.') && !hostname.startsWith('[')) return false
-    if (
-      LOOPBACK.test(hostname) ||
-      PRIVATE_10.test(hostname) ||
-      PRIVATE_172.test(hostname) ||
-      PRIVATE_192.test(hostname) ||
-      LINK_LOCAL.test(hostname) ||
-      CGNAT.test(hostname) ||
-      ANY_ADDR.test(hostname) ||
-      IPV6_LOOPBACK.test(hostname) ||
-      IPV6_UNIQUE_LOCAL.test(hostname) ||
-      IPV6_LINK_LOCAL.test(hostname)
-    ) return false
-    return true
-  } catch {
-    return false
-  }
-}
-```
-
-- [ ] **Step 2: Manually verify the four cases from the audit**
-
-Add a temporary test script at the bottom of the file (delete after checking), or just run this in a Node REPL:
-
-```typescript
-// These should all return false:
-isSafeUrl('http://0.0.0.0/')         // ANY_ADDR
-isSafeUrl('http://100.64.0.1/')      // CGNAT
-isSafeUrl('http://2130706433/')      // decimal 127.0.0.1
-isSafeUrl('http://localhost/')       // no dot check
-// These should return true:
-isSafeUrl('https://reuters.com/article')
-isSafeUrl('https://cdc.gov/page')
-```
-
-- [ ] **Step 3: Type-check**
+- [ ] **Step 1: Read research-pipeline.ts to find exact locations**
 
 ```bash
-npx tsc --noEmit
+grep -n "emptyClaudeResponse\|emptyGeminiResponse\|Phase 1\|Promise.all\|callGemini" ai/graphs/research-pipeline.ts
 ```
-Expected: no errors.
 
-- [ ] **Step 4: Commit**
+Find where `emptyClaudeResponse` and `emptyGeminiResponse` are defined, and where Phase 1 `await Promise.all([...])` is.
+
+- [ ] **Step 2: Move empty response constants before Phase 1**
+
+These constants are referenced in the early Gemini promise. Move their definitions to just after the `const { prompt, ... } = input` destructuring — before the Phase 1 block. Their current values don't change:
+
+```ts
+const emptyClaudeResponse = { modelId: 'claude' as const, rawText: '', citations: [], latencyMs: 0 }
+const emptyGeminiResponse = { modelId: 'gemini' as const, rawText: '', citations: [], latencyMs: 0 }
+```
+
+- [ ] **Step 3: Fire early Gemini promise before Phase 1**
+
+Immediately after the constants (and before `await Promise.all([classifyQuery, planResearch])`), add:
+
+```ts
+// ── Pre-Phase 1: Start Gemini on raw query to overlap with classify + plan ─
+// Discarded if the classified mode doesn't use Gemini (SAGE/ECHO).
+// Cost: occasional wasted Gemini call. Saves ~1–2s on all other runs.
+const earlyGeminiPromise = (!clientMode && !prefetchedGemini)
+  ? callGemini(prompt).catch(() => emptyGeminiResponse)
+  : null
+```
+
+- [ ] **Step 4: Use earlyGeminiPromise in Phase 2**
+
+In the Phase 2 model call block, update the Gemini branch to prefer the early promise:
+
+```ts
+// Find the line that determines the gemini call and replace:
+// OLD:
+GEMINI_SEARCH_MODES.has(mode)
+  ? (prefetchedGeminiResponse ? Promise.resolve(prefetchedGeminiResponse) : callGemini(geminiPrompt))
+  : Promise.resolve(emptyGeminiResponse),
+
+// NEW:
+GEMINI_SEARCH_MODES.has(mode)
+  ? (prefetchedGeminiResponse
+      ? Promise.resolve(prefetchedGeminiResponse)
+      : (earlyGeminiPromise ?? callGemini(geminiPrompt))
+    )
+  : Promise.resolve(emptyGeminiResponse),
+```
+
+The `CLAUDE_REASONING_MODES`, `GEMINI_SEARCH_MODES` Sets, `prefetchedGeminiResponse`, and other existing logic stay unchanged.
+
+- [ ] **Step 5: Commit**
 
 ```bash
-git add ai/nodes/sources.ts
-git commit -m "fix: harden isSafeUrl — add CGNAT, decimal IP, and 0.0.0.0 SSRF blocks"
+git add ai/graphs/research-pipeline.ts
+git commit -m "perf: fire Gemini web search in parallel with Phase 1 — removes ~1-2s sequential gap"
 ```
 
 ---
 
-## Task 5: Split StructuredOutputView into Per-Mode Files
+## Task 5: Trim NOVA sections + differentiate NOVA/CIPHER + adjust caps
 
-**Why:** `components/research/StructuredOutputView.tsx` is 1,268 LOC with cyclomatic complexity 51. It houses 14 named components plus the mode-dispatch orchestrator in a single file. Any schema change or rendering fix requires reading the entire file. This task is a **pure file-split** — zero logic changes.
+NOVA (research) has 9+ bento sections with heavy overlap — `expertConsensus` largely duplicates `keyFindings` and `overview`. CIPHER (intelligence) is nearly a NOVA subset. Also: research cap 3→4 (better for the fallback mode), forecast cap 3→2 (time horizon + decision context is enough).
 
 **Files:**
-- Create: `components/research/views/primitives.tsx`
-- Create: `components/research/views/ExecutiveAnswer.tsx`
-- Create: `components/research/views/DecisionBreakdown.tsx`
-- Create: `components/research/views/EvidenceAndInsights.tsx`
-- Create: `components/research/views/Risks.tsx`
-- Create: `components/research/views/WhatThisMisses.tsx`
-- Create: `components/research/views/ActionPlan.tsx`
-- Create: `components/research/views/GoDeeperCard.tsx`
-- Create: `components/research/views/Sources.tsx`
-- Create: `components/research/views/PerspectivesView.tsx`
-- Create: `components/research/views/ChallengeView.tsx`
-- Create: `components/research/views/ExecutionView.tsx`
-- Create: `components/research/views/AnalysisView.tsx`
-- Create: `components/research/views/UnderstandingView.tsx`
-- Create: `components/research/views/ForecastView.tsx`
-- Modify: `components/research/StructuredOutputView.tsx` → keep only the mode-dispatch + `Props` interface
+- Modify: `ai/config/modes.ts` — research cap 3→4, forecast cap 3→2
+- Modify: `ai/prompts/synthesizer/research.ts` — remove `expertConsensus` from JSON template
+- Modify: `ai/schemas/index.ts` — remove `expertConsensus` from `ResearchModeSchema`
+- Modify: `ai/output/structured-output.ts` — remove from `EvidenceAndInsights` interface + transformer
+- Modify: `components/research/views/EvidenceAndInsights.tsx` — remove expertConsensus render block
+- Modify: `components/research/views/AnalysisView.tsx` — make `patterns` visually prominent (card style, not bullet list)
 
-- [ ] **Step 1: Read the full current file**
+**Steps:**
+
+- [ ] **Step 1: Update mode caps**
+
+In `ai/config/modes.ts`, in the `MODES` record:
+
+```ts
+// Change research cap:
+research: {
+  cap: 4,
+  stopCondition: 'You know their objective AND at least two key context factors (background, constraints, use case, or scope)',
+},
+
+// Change forecast cap:
+forecast: {
+  cap: 2,
+  stopCondition: 'You know the time horizon AND the decision context — both are required to give a grounded forecast',
+},
+```
+
+- [ ] **Step 2: Remove expertConsensus from RESEARCH_SYSTEM prompt**
+
+In `ai/prompts/synthesizer/research.ts`, remove the line:
+
+```
+  "expertConsensus": "2-3 sentences on what experts agree on.",
+```
+
+from the JSON template. Do not add a replacement — the content naturally folds into `overview` and `keyFindings`.
+
+- [ ] **Step 3: Remove expertConsensus from ResearchModeSchema**
+
+In `ai/schemas/index.ts`, in `ResearchModeSchema`, remove:
+
+```ts
+expertConsensus: z.string(),
+```
+
+The `EliteResearchOutputSchema` has `expertConsensus` as optional — leave it there (not a breaking change, just unused by NOVA streaming).
+
+- [ ] **Step 4: Remove expertConsensus from structured-output.ts**
+
+In `ai/output/structured-output.ts`:
+
+Remove from `EvidenceAndInsights` interface:
+```ts
+// Remove this line:
+expertConsensus: string
+```
+
+Remove from the transformer:
+```ts
+// Remove this line in the evidenceAndInsights object:
+expertConsensus: raw.expertConsensus ?? '',
+```
+
+- [ ] **Step 5: Remove expertConsensus from EvidenceAndInsights view**
+
+Read `components/research/views/EvidenceAndInsights.tsx`. Find the JSX block that renders `expertConsensus` (likely a Card with label "Expert Consensus"). Remove it entirely.
+
+Verify no TypeScript error by checking the component's `data` prop type matches the updated `EvidenceAndInsights` interface.
+
+- [ ] **Step 6: Make patterns prominent in AnalysisView (CIPHER)**
+
+Read `components/research/views/AnalysisView.tsx`. Find where `patterns` renders. If it's currently a plain list, upgrade each pattern to a styled card to differentiate CIPHER from NOVA visually:
+
+```tsx
+{patterns.map((pattern, i) => (
+  <div key={i} className="p-3.5 rounded-xl" style={{ background: '#f8f5f0', border: '1px solid #e8e2d9' }}>
+    <div className="flex items-start gap-3">
+      <span className="font-mono text-[10px] font-bold text-indigo-600 mt-1 shrink-0">→</span>
+      <p className="text-[13.5px] text-slate-700 leading-[1.65]">{pattern}</p>
+    </div>
+  </div>
+))}
+```
+
+- [ ] **Step 7: Grep for remaining expertConsensus references**
 
 ```bash
-wc -l components/research/StructuredOutputView.tsx
-cat components/research/StructuredOutputView.tsx
+grep -rn "expertConsensus" components/ app/ ai/ --include="*.ts" --include="*.tsx"
 ```
 
-Read it completely before touching anything. Note every named component, every import, and every import that shared primitives need.
+Remove or update any remaining references. The field can stay in `EliteResearchOutputSchema` as optional — just remove any *rendering* of it.
 
-- [ ] **Step 2: Create `components/research/views/primitives.tsx`**
-
-Move into this file: `Label`, `ConfidencePip`, `CredibilityPip`, `Card` (with its `CardProps` interface), and `scoreColor`. Add any imports they need (motion, React types). Export all of them named.
-
-```typescript
-'use client'
-
-import { motion } from 'motion/react'
-
-export function Label({ children }: { children: React.ReactNode }) { /* ... */ }
-export function ConfidencePip({ level }: { level: string }) { /* ... */ }
-export function CredibilityPip({ tier }: { tier?: string }) { /* ... */ }
-export interface CardProps { /* ... */ }
-export function Card({ children, delay, accentColor, className, style }: CardProps) { /* ... */ }
-export function scoreColor(score: number) { /* ... */ }
-```
-
-(Copy the exact implementation from the original file — no logic changes.)
-
-- [ ] **Step 3: Create each view file**
-
-For each of the 14 components, create `components/research/views/<ComponentName>.tsx` with:
-- `'use client'` directive
-- Imports from `./primitives` for any shared primitive it uses
-- Imports from `@/ai/output/structured-output` or `@/ai/schemas` for any types it needs
-- The exact component implementation copied from `StructuredOutputView.tsx`
-- A named export of the component
-
-Example for `ExecutiveAnswer.tsx`:
-```typescript
-'use client'
-
-import { Label, ConfidencePip } from './primitives'
-import type { StructuredOutput } from '@/ai/output/structured-output'
-
-export function ExecutiveAnswer({ data }: { data: StructuredOutput }) {
-  // exact copy of ExecutiveAnswer from StructuredOutputView.tsx
-}
-```
-
-Repeat this pattern for all 14 components. Do not change any JSX or logic.
-
-- [ ] **Step 4: Rewrite `StructuredOutputView.tsx` as orchestrator shell**
-
-Replace the file contents with only the mode-dispatch logic and `Props` interface:
-
-```typescript
-'use client'
-
-import { toStructuredOutput } from '@/ai/output/structured-output'
-import type { EliteResearchOutput } from '@/ai/schemas'
-import { ExecutiveAnswer }      from './views/ExecutiveAnswer'
-import { DecisionBreakdown }    from './views/DecisionBreakdown'
-import { EvidenceAndInsights }  from './views/EvidenceAndInsights'
-import { Risks }                from './views/Risks'
-import { WhatThisMisses }       from './views/WhatThisMisses'
-import { ActionPlan }           from './views/ActionPlan'
-import { GoDeeperCard }         from './views/GoDeeperCard'
-import { Sources }              from './views/Sources'
-import { PerspectivesView }     from './views/PerspectivesView'
-import { ChallengeView }        from './views/ChallengeView'
-import { ExecutionView }        from './views/ExecutionView'
-import { AnalysisView }         from './views/AnalysisView'
-import { UnderstandingView }    from './views/UnderstandingView'
-import { ForecastView }         from './views/ForecastView'
-
-interface Props {
-  data: Partial<EliteResearchOutput>
-  isLoading: boolean
-  onGoDeeper?: (question: string) => void
-}
-
-export function StructuredOutputView({ data, isLoading, onGoDeeper }: Props) {
-  const structured = toStructuredOutput(data)
-  // ... existing mode-dispatch logic, now using imported sub-components
-}
-```
-
-- [ ] **Step 5: Verify line count**
+- [ ] **Step 8: Type check**
 
 ```bash
-wc -l components/research/StructuredOutputView.tsx
+npx tsc --noEmit 2>&1 | grep -v "node_modules"
 ```
-Expected: fewer than 100 lines.
 
-- [ ] **Step 6: Type-check**
+Fix any errors before committing.
+
+- [ ] **Step 9: Commit**
 
 ```bash
-npx tsc --noEmit
+git add ai/config/modes.ts ai/prompts/synthesizer/research.ts ai/schemas/index.ts ai/output/structured-output.ts components/research/views/EvidenceAndInsights.tsx components/research/views/AnalysisView.tsx
+git commit -m "refactor: trim NOVA expertConsensus, differentiate CIPHER patterns, bump research cap to 4"
 ```
-Expected: no errors.
-
-- [ ] **Step 7: Start the dev server and verify all 8 modes render**
-
-```bash
-npm run dev
-```
-
-Open the app, run a research query for at least one of: `decision`, `research`, `forecast`, `perspectives`, `competitive` modes. Confirm the output renders without visual regression.
-
-- [ ] **Step 8: Commit**
-
-```bash
-git add components/research/
-git commit -m "refactor: split StructuredOutputView into per-mode view files"
-```
-
----
-
-## Self-Review
-
-### Spec coverage
-
-| Audit finding | Task |
-|---|---|
-| Stale `METHODOLOGY_PREAMBLE` date | Task 1 |
-| `forecast.ts` module-level `CURRENT_YEAR` | Task 1 step 3 |
-| Orphaned `.then()` in `handleContinueResearch` | Task 2 |
-| Untested inline trust score with no confidence clamping | Task 3 |
-| Incomplete SSRF filter (missing CGNAT, decimal IP, 0.0.0.0) | Task 4 |
-| 1,268 LOC `StructuredOutputView.tsx` monolith | Task 5 |
-
-All 5 production failure scenarios from the audit are covered by Tasks 1–3.
-
-### Not in scope (separate work)
-
-- Splitting `runResearchPipeline` (Risk 2 in audit) — deferred; higher blast radius, needs integration testing
-- Streaming truncation detection (Scenario 2 in audit) — requires API route changes + schema changes

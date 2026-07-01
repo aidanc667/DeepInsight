@@ -1,7 +1,8 @@
 import { generateText } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
-import { getExpertPersona } from '@/ai/prompts/expert-personas'
+import { EXPERT_PERSONAS } from '@/ai/prompts/expert-personas'
 import { getModeCap, getModeStopCondition } from '@/ai/config/modes'
+import type { DomainName } from '@/ai/schemas'
 
 export const maxDuration = 15
 
@@ -10,8 +11,9 @@ interface HistoryEntry {
   answer: string
 }
 
-function buildSystem(prompt: string, historyLength: number, mode: string): string {
-  const { title, description } = getExpertPersona(prompt)
+function buildSystem(prompt: string, historyLength: number, mode: string, domain?: string): string {
+  const persona = EXPERT_PERSONAS[(domain as DomainName) ?? 'general'] ?? EXPERT_PERSONAS.general
+  const { title, description } = persona
   const hardCap = getModeCap(mode)
   const stopCondition = getModeStopCondition(mode)
 
@@ -68,10 +70,11 @@ OPTION QUALITY RULES:
 
 export async function POST(req: Request) {
   try {
-    const { prompt: rawPrompt, history = [], mode = 'research' } = await req.json() as {
+    const { prompt: rawPrompt, history = [], mode = 'research', domain } = await req.json() as {
       prompt: string
       history: HistoryEntry[]
       mode?: string
+      domain?: string
     }
 
     if (!rawPrompt?.trim()) {
@@ -90,7 +93,7 @@ export async function POST(req: Request) {
 
     const result = await generateText({
       model: anthropic('claude-haiku-4-5'),
-      system: buildSystem(prompt, history.length, mode),
+      system: buildSystem(prompt, history.length, mode, domain),
       prompt: `User's request: "${prompt}"${historyBlock}\n\nWhat is the single most important question to ask next to give a better, more personalized answer — or do you have enough context?`,
       maxOutputTokens: 400,
     })

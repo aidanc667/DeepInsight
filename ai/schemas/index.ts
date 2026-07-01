@@ -39,11 +39,18 @@ export const TrustScoreSchema = z.object({
 export const QUERY_MODES = ['decision', 'research', 'intelligence', 'perspectives', 'competitive', 'explainer', 'action', 'forecast'] as const
 export type QueryMode = typeof QUERY_MODES[number]
 
+export const DOMAIN_NAMES = [
+  'automotive', 'finance', 'real_estate', 'health', 'technology', 'legal',
+  'career', 'nutrition', 'business', 'travel', 'education', 'parenting', 'general',
+] as const
+export type DomainName = typeof DOMAIN_NAMES[number]
+
 export const QueryClassifierSchema = z.object({
   mode: z.enum(QUERY_MODES),
   confidence: z.number(),
   reasoning: z.string(),
   modeLabel: z.string(),
+  domain: z.enum(DOMAIN_NAMES).default('general'),
 })
 
 // ─── Research Plan ────────────────────────────────────────────────────────────
@@ -193,13 +200,12 @@ export const DecisionModeSchema = z.object({
 
 export const ResearchModeSchema = z.object({
   ...BASE_FIELDS,
-  overview:        z.string(),
-  keyFindings:     z.array(ResearchFindingSchema),
-  expertConsensus: z.string(),
-  misconceptions:  z.array(z.string()),
-  implications:    z.string(),
-  goDeeper:        z.array(z.string()),
-  risks:           z.array(z.string()),
+  overview:       z.string(),
+  keyFindings:    z.array(ResearchFindingSchema),
+  misconceptions: z.array(z.string()),
+  implications:   z.string(),
+  goDeeper:       z.array(z.string()),
+  risks:          z.array(z.string()),
 })
 
 export const IntelligenceModeSchema = z.object({

@@ -11,10 +11,31 @@ export function ChallengeView({ data, delay }: { data: NonNullable<StructuredOut
 
   return (
     <div className="space-y-3.5">
-      {verdict && (
+      {/* Steelman first — state the strongest form of the argument before critiquing it */}
+      {adversarialReview && (
         <motion.div
           initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18, delay, ease: [0.16, 1, 0.3, 1] }}
+          className="rounded-xl overflow-hidden"
+          style={{ background: 'white', border: '1px solid rgba(52,211,153,0.25)' }}
+        >
+          <div className="p-5 flex items-start gap-3">
+            <div className="flex items-center justify-center h-6 w-6 rounded-md shrink-0 mt-0.5"
+              style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)' }}>
+              <Shield className="h-3 w-3 text-emerald-600" />
+            </div>
+            <div>
+              <p className="report-section-label mb-2">Steelman</p>
+              <p className="text-[13.5px] text-slate-700 leading-[1.65]">{adversarialReview}</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {verdict && (
+        <motion.div
+          initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18, delay: delay + 0.02, ease: [0.16, 1, 0.3, 1] }}
           className="rounded-xl overflow-hidden"
           style={{ background: 'white', border: '1px solid rgba(244,63,94,0.25)' }}
         >
@@ -26,7 +47,7 @@ export function ChallengeView({ data, delay }: { data: NonNullable<StructuredOut
       )}
 
       {risks.length > 0 && (
-        <Card delay={delay + 0.02} style={{ border: '1px solid rgba(245,158,11,0.25)' }}>
+        <Card delay={delay + 0.04} style={{ border: '1px solid rgba(245,158,11,0.25)' }}>
           <div className="p-5">
             <div className="flex items-center gap-2.5 mb-4">
               <div className="flex items-center justify-center h-6 w-6 rounded-md"
@@ -52,7 +73,7 @@ export function ChallengeView({ data, delay }: { data: NonNullable<StructuredOut
       )}
 
       {(blindSpots.length > 0 || misconceptions.length > 0) && (
-        <Card delay={delay + 0.035}>
+        <Card delay={delay + 0.06}>
           <div className="p-5">
             <div className="flex items-center gap-2 mb-4">
               <HelpCircle className="h-3.5 w-3.5 text-violet-400" />
@@ -76,26 +97,6 @@ export function ChallengeView({ data, delay }: { data: NonNullable<StructuredOut
             </div>
           </div>
         </Card>
-      )}
-
-      {adversarialReview && (
-        <motion.div
-          initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.18, delay: delay + 0.06, ease: [0.16, 1, 0.3, 1] }}
-          className="rounded-xl overflow-hidden"
-          style={{ background: 'white', border: '1px solid rgba(52,211,153,0.25)' }}
-        >
-          <div className="p-5 flex items-start gap-3">
-            <div className="flex items-center justify-center h-6 w-6 rounded-md shrink-0 mt-0.5"
-              style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)' }}>
-              <Shield className="h-3 w-3 text-emerald-600" />
-            </div>
-            <div>
-              <p className="report-section-label mb-2">Steelman</p>
-              <p className="text-[13.5px] text-slate-700 leading-[1.65]">{adversarialReview}</p>
-            </div>
-          </div>
-        </motion.div>
       )}
     </div>
   )

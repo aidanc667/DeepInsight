@@ -1,7 +1,8 @@
 import { generateText } from 'ai'
 import { anthropic } from '@ai-sdk/anthropic'
-import { getExpertPersona } from '@/ai/prompts/expert-personas'
+import { EXPERT_PERSONAS } from '@/ai/prompts/expert-personas'
 import { getModeCap, getModeInstructions, inferMode } from '@/ai/config/modes'
+import type { DomainName } from '@/ai/schemas'
 
 export const maxDuration = 20
 
@@ -10,7 +11,7 @@ const PURELY_FACTUAL = /^(what is |what are |who is |who are |when did |when was
 
 export async function POST(req: Request) {
   try {
-    const { prompt: rawPrompt, mode: modeHint } = await req.json() as { prompt: string; mode?: string }
+    const { prompt: rawPrompt, mode: modeHint, domain } = await req.json() as { prompt: string; mode?: string; domain?: string }
     if (!rawPrompt?.trim()) return Response.json({ expertTitle: '', questions: [] })
     const prompt = rawPrompt.trim().slice(0, 2000).replace(/[\x00-\x1F\x7F]/g, '')
 
@@ -19,7 +20,8 @@ export async function POST(req: Request) {
       return Response.json({ expertTitle: '', questions: [] })
     }
 
-    const { title, description } = getExpertPersona(prompt)
+    const persona = EXPERT_PERSONAS[(domain as DomainName) ?? 'general'] ?? EXPERT_PERSONAS.general
+    const { title, description } = persona
     const mode = modeHint ?? inferMode(prompt)
     const cap = getModeCap(mode)
     const modeInstructions = getModeInstructions(mode, cap)

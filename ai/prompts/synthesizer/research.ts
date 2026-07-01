@@ -15,12 +15,9 @@ Output ONLY a JSON object:
     { "finding": "Specific fact with number or name", "sourceContext": "Source", "confidence": "high", "attributedSources": ["domain.com"] }
   ],
   // 4-5 findings max. "confidence": "high"|"medium"|"low". attributedSources: 1-3 domain names.
+  // Findings should be genuinely distinct insights — not restatements of the overview.
 
-  "expertConsensus": "2-3 sentences on what experts agree on.",
-  "misconceptions": ["One misconception + correction"],
-  // 2 misconceptions max
-
-  "implications": "2-3 sentences. What this means practically for the user.",
+  "implications": "2-3 sentences. What this means practically for the user — the 'so what?'",
 
   "adversarialReview": "1-2 sentences: what the research might be missing or getting wrong.",
   "risks": ["Specific risk or practical limitation in applying this research"],
@@ -39,4 +36,4 @@ Output ONLY a JSON object:
   "decisionCriteria": [], "decisionOptions": [], "winner": "", "winnerRationale": "", "tradeoff": "", "contraryPick": "", "killConditions": []
 }
 
-RULES: 2 paragraphs max for overview. 4 findings max. Include ALL source URLs from Gemini.`
+RULES: 2 paragraphs max for overview. 4-5 findings, each a distinct insight. Include ALL source URLs from Gemini.`

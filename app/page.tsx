@@ -110,6 +110,8 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
 
   // Holds the in-flight presearch promise so startResearch can await it
   const presearchRef = useRef<Promise<{ rawText: string; citations: unknown[] } | null> | null>(null)
+  // Stores the AI-selected domain from classify so clarify/next calls can use it
+  const classifiedDomainRef = useRef<string | null>(null)
 
   // Debounced pre-classify while typing — fires /api/classify after 600ms of inactivity.
   // Result cached in detectedMode so handleAnalyze can skip the classify call.
@@ -215,12 +217,13 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
     setQuestionIndex(0)
     setPendingAnswer('')
     setCurrentPromptLabel(prompt)
+    classifiedDomainRef.current = null
 
     try {
       const skipClassify = !!selectedAgent || !!detectedMode
       const mode = selectedAgent ?? detectedMode ?? undefined
 
-      // Fire all three requests immediately — don't sequence them
+      // Fire classify immediately, then fire clarify calls once we have the domain
       const classifyPromise = skipClassify
         ? Promise.resolve(null)
         : fetch('/api/classify', {
@@ -228,16 +231,21 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
             body: JSON.stringify({ prompt }),
           }).then(r => r.json())
 
-      const planPromise = fetch('/api/clarify/plan', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, mode }),
-      }).then(r => r.json())
-
-      // clarify/next fetches just Q1 and is faster than the full plan
+      // Fire clarify/next immediately with what we know (domain may upgrade after classify resolves)
       const firstQPromise = fetch('/api/clarify/next', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, history: [], mode }),
       }).then(r => r.json())
+
+      // Fire plan after classify resolves so it gets the AI-selected domain
+      const planPromise = classifyPromise.then(classifyRes => {
+        const domain = classifyRes?.domain ?? undefined
+        const resolvedMode = classifyRes?.mode ?? mode
+        return fetch('/api/clarify/plan', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt, mode: resolvedMode, domain }),
+        }).then(r => r.json())
+      })
 
       let shownQ1 = false
 
@@ -252,12 +260,13 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
 
       // Await classify + plan in parallel (plan may arrive after Q1 already shown)
       const [classifyResult, plan] = await Promise.all([classifyPromise, planPromise]) as [
-        { mode?: string; confidence?: number } | null,
+        { mode?: string; confidence?: number; domain?: string } | null,
         QuestionPlan & { error?: boolean }
       ]
 
       const classifiedMode = (classifyResult?.mode ?? selectedAgent ?? detectedMode) as QueryMode | undefined
       if (classifiedMode) setDetectedMode(classifiedMode)
+      if (classifyResult?.domain) classifiedDomainRef.current = classifyResult.domain
 
       if (plan.questions && plan.questions.length > 0) {
         if (!shownQ1) {
@@ -324,6 +333,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
           prompt,
           history: newHistory.map(e => ({ question: e.question.question, answer: e.answer })),
           mode: detectedMode ?? undefined,
+          domain: classifiedDomainRef.current ?? undefined,
         }),
       })
       const next = await res.json()
