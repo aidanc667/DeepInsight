@@ -40,8 +40,6 @@ export function ResearchLoadingScreen({ prompt, isActive }: Props) {
     }
 
     startRef.current = Date.now()
-    setElapsed(0)
-    setMsgIdx(0)
 
     tickRef.current = setInterval(() => {
       setElapsed(Date.now() - startRef.current)
@@ -54,8 +52,10 @@ export function ResearchLoadingScreen({ prompt, isActive }: Props) {
     return () => {
       if (tickRef.current) clearInterval(tickRef.current)
       if (msgRef.current)  clearInterval(msgRef.current)
+      setElapsed(0)
+      setMsgIdx(0)
     }
-  }, [isActive])
+  }, [isActive, persona.loadingMessages.length])
 
   const progress    = Math.min(elapsed / TOTAL_MS, 0.97)
   const activeStage = Math.max(0, STAGE_ENDS.findIndex(end => elapsed < end))

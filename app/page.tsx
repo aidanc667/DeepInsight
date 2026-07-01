@@ -223,11 +223,6 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
     })
   }, [prompt, detectedMode, submit])
 
-  // Queries that clearly need personal context — always show questions regardless of plan result
-  const needsContext = useCallback((q: string) => {
-    return /\b(should i|should we|what.*(should|best|recommend|buy|get|choose|pick|use)|which.*(better|best|right|for me)|help me (choose|decide|pick|find|buy|select)|best .*(for|option|choice)|compare|versus|vs\.?|recommend|advice|suggest)\b/i.test(q)
-  }, [])
-
   const handleAnalyze = useCallback(async () => {
     if (!prompt.trim()) return
     setResearchError(null)
@@ -330,7 +325,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
         startResearch()
       }
     }
-  }, [prompt, startResearch, needsContext, firePresearch, selectedAgent, detectedMode])
+  }, [prompt, startResearch, firePresearch, selectedAgent, detectedMode])
 
   const handleSubmitAnswer = useCallback(async () => {
     if (!pendingAnswer || !currentQuestion) return
@@ -378,7 +373,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
     } finally {
       setFetchingNext(false)
     }
-  }, [pendingAnswer, currentQuestion, questionHistory, questionIndex, questionPlan, prompt, startResearch])
+  }, [pendingAnswer, currentQuestion, questionHistory, questionIndex, prompt, startResearch, detectedMode])
 
   const handleSkipToResearch = useCallback(() => {
     const ctx = questionHistory.map(e => `${e.question.question}: ${e.answer}`).join('\n')
@@ -459,7 +454,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
         priorSessions:        [],
       })
     }
-  }, [followUpText, prompt, currentPromptLabel, object, detectedMode, submit])
+  }, [followUpText, prompt, currentPromptLabel, object, detectedMode, submit, chatHistory, questionHistory])
 
   const handleGoDeeper = useCallback((question: string) => {
     if (object) {
@@ -488,11 +483,6 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
       submit({ prompt: question, clarificationContext: prevContext || undefined, forceProceed: true, mode: undefined, priorSessions: prior.slice(0, 10) })
     })
   }, [submit, object, currentPromptLabel, prompt])
-
-  const handleRerun = useCallback((query: string) => {
-    setPrompt(query)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [])
 
   const isResearching   = appState === 'researching' || isLoading
   const isInputDisabled = isResearching || appState === 'questioning'

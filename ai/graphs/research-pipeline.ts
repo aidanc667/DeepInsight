@@ -70,7 +70,7 @@ export interface ResearchPipelineInput {
 // ─── Main pipeline ────────────────────────────────────────────────────────────
 
 export async function runResearchPipeline(input: ResearchPipelineInput): Promise<Response> {
-  const { prompt, forceProceed, mode: clientMode, priorSessions, prefetchedGemini } = input
+  const { prompt, mode: clientMode, priorSessions, prefetchedGemini } = input
   const clarificationContext = input.clarificationContext  // always carry context, even when skipping questions
 
 
@@ -86,7 +86,7 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
     : null
 
   // ── Phase 1: Classify + Plan in parallel (both Haiku — fast) ──────────────
-  const [{ mode, confidence: modeConfidence }, plan] = await Promise.all([
+  const [{ mode }, plan] = await Promise.all([
     clientMode && QUERY_MODES.includes(clientMode as QueryMode)
       ? Promise.resolve({ mode: clientMode as QueryMode, confidence: 90 })
       : classifyQuery(prompt),
