@@ -1,30 +1,50 @@
-// Persistent rate limiter backed by Upstash Redis.
-// Falls back to a permissive stub when env vars aren't set (local dev / CI).
+// Persistent rate limiter backed by Neon PostgreSQL.
+// Falls back to allow-all when DATABASE_URL is not set (local dev without DB).
 
-import { Redis } from '@upstash/redis'
-import { Ratelimit } from '@upstash/ratelimit'
+import { neon } from '@neondatabase/serverless'
 
-let limiter: Ratelimit | null = null
+const LIMIT     = 40
+const WINDOW_MS = 24 * 60 * 60 * 1000  // 24 hours
 
-function getLimiter(): Ratelimit | null {
-  if (limiter) return limiter
-
-  const url   = process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN
-  if (!url || !token) return null
-
-  limiter = new Ratelimit({
-    redis:   new Redis({ url, token }),
-    // 40 research runs per user per 24-hour sliding window — cross-instance, persistent
-    limiter: Ratelimit.slidingWindow(40, '24 h'),
-    prefix:  'di:rl',
-  })
-  return limiter
-}
+let tableReady = false
 
 export async function checkRateLimit(key: string): Promise<boolean> {
-  const rl = getLimiter()
-  if (!rl) return true  // env vars not set — allow (local dev)
-  const { success } = await rl.limit(key)
-  return success
+  const url = process.env.DATABASE_URL
+  if (!url) return true  // local dev without DB — allow
+
+  const sql = neon(url)
+
+  if (!tableReady) {
+    await sql`
+      CREATE TABLE IF NOT EXISTS rate_limits (
+        user_key     TEXT   PRIMARY KEY,
+        count        INT    NOT NULL DEFAULT 0,
+        window_start BIGINT NOT NULL
+      )
+    `
+    tableReady = true
+  }
+
+  const now         = Date.now()
+  const windowStart = now - WINDOW_MS
+
+  // Single upsert: reset window if expired, otherwise increment.
+  // Returns new count so we can check the limit in one round-trip.
+  const rows = await sql`
+    INSERT INTO rate_limits (user_key, count, window_start)
+    VALUES (${key}, 1, ${now})
+    ON CONFLICT (user_key) DO UPDATE SET
+      count        = CASE
+                       WHEN rate_limits.window_start < ${windowStart} THEN 1
+                       ELSE rate_limits.count + 1
+                     END,
+      window_start = CASE
+                       WHEN rate_limits.window_start < ${windowStart} THEN ${now}
+                       ELSE rate_limits.window_start
+                     END
+    RETURNING count
+  `
+
+  const count = (rows[0] as { count: number } | undefined)?.count ?? 1
+  return count <= LIMIT
 }
