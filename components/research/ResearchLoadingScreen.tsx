@@ -210,9 +210,11 @@ export function ResearchLoadingScreen({ prompt, isActive }: Props) {
               style={{ borderColor: '#e8e2d9' }}
             >
               {[
-                { label: 'CLAUDE SONNET', dot: '#818cf8' },
-                { label: 'GEMINI FLASH', dot: '#6b8cae' },
-                { label: 'LIVE WEB', dot: '#34d399' },
+                { label: 'Claude Haiku', dot: '#818cf8' },
+                { label: 'Gemini Flash', dot: '#6b8cae' },
+                { label: 'Claude Sonnet', dot: '#a78bfa' },
+                { label: 'Live Web Search', dot: '#34d399' },
+                { label: 'Multi-Model Synthesis', dot: '#f59e0b' },
               ].map(({ label, dot }) => (
                 <div key={label} className="flex items-center gap-1.5 pt-3">
                   <div

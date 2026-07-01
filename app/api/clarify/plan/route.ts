@@ -6,19 +6,11 @@ import type { DomainName } from '@/ai/schemas'
 
 export const maxDuration = 20
 
-// Hard fast-path for obvious definitional/factual lookups — skip the model call entirely.
-const PURELY_FACTUAL = /^(what is |what are |who is |who are |when did |when was |where is |where are |how does |how do |how did |explain |define |describe |tell me about |why does |why is |why are )/i
-
 export async function POST(req: Request) {
   try {
     const { prompt: rawPrompt, mode: modeHint, domain } = await req.json() as { prompt: string; mode?: string; domain?: string }
     if (!rawPrompt?.trim()) return Response.json({ expertTitle: '', questions: [] })
     const prompt = rawPrompt.trim().slice(0, 2000).replace(/[\x00-\x1F\x7F]/g, '')
-
-    // Fast path — pure factual lookup needs no clarification
-    if (PURELY_FACTUAL.test(prompt.trim())) {
-      return Response.json({ expertTitle: '', questions: [] })
-    }
 
     const persona = EXPERT_PERSONAS[(domain as DomainName) ?? 'general'] ?? EXPERT_PERSONAS.general
     const { title, description } = persona

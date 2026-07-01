@@ -237,6 +237,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
     classifiedDomainRef.current = null
 
     let shownQ1 = false
+    let firstShownQuestion: ClarificationQuestion | null = null
     let didStartResearch = false
 
     try {
@@ -271,6 +272,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
       firstQPromise.then(firstQ => {
         if (shownQ1 || didStartResearch || firstQ.done || !firstQ.question) return
         shownQ1 = true
+        firstShownQuestion = firstQ.question
         firePresearch(prompt)
         setQuestionPlan({ expertTitle: '', questions: [firstQ.question] })
         setAppState('questioning')
@@ -290,36 +292,29 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
         if (!shownQ1) {
           // clarify/next was slower than plan — use plan directly
           shownQ1 = true
+          firstShownQuestion = plan.questions[0]
           firePresearch(prompt)
           setQuestionPlan(plan)
           setAppState('questioning')
         } else {
-          // Q1 already visible — keep the already-shown Q1, append Q2+ from plan
-          // (plan Q1 may differ in phrasing from clarify/next Q1 — don't swap it)
-          setQuestionPlan(prev => {
-            if (prev && prev.questions.length > 1) return prev
-            return {
-              expertTitle: plan.expertTitle ?? prev?.expertTitle ?? '',
-              questions: [
-                ...(prev?.questions ?? [plan.questions[0]]),
-                ...plan.questions.slice(prev?.questions.length ?? 1),
-              ],
-            }
+          // Q1 already visible — keep the exact question we showed, append Q2+ from plan.
+          // Use firstShownQuestion (not prev state) to avoid React batching races where
+          // prev might be stale null when the updater runs.
+          const q1 = firstShownQuestion ?? plan.questions[0]
+          setQuestionPlan({
+            expertTitle: plan.expertTitle ?? '',
+            questions: [q1, ...plan.questions.slice(1)],
           })
         }
       } else if (!shownQ1) {
-        // Plan says no questions — check needsContext fallback
-        if (needsContext(prompt)) {
-          // Reuse the already-in-flight firstQPromise instead of a new fetch
-          const next = await firstQPromise
-          if (!next.done && next.question) {
-            firePresearch(prompt)
-            setQuestionPlan({ expertTitle: plan.expertTitle ?? '', questions: [next.question] })
-            setAppState('questioning')
-          } else {
-            didStartResearch = true
-            startResearch()
-          }
+        // Plan says no questions — always attempt Q1 from clarify/next before researching
+        const next = await firstQPromise
+        if (!next.done && next.question) {
+          shownQ1 = true
+          firstShownQuestion = next.question
+          firePresearch(prompt)
+          setQuestionPlan({ expertTitle: plan.expertTitle ?? '', questions: [next.question] })
+          setAppState('questioning')
         } else {
           didStartResearch = true
           startResearch()
@@ -328,8 +323,11 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
       // If plan is empty but shownQ1 is true: Q1 came from clarify/next.
       // After answering, handleSubmitAnswer will call clarify/next for Q2 (existing flow).
     } catch {
-      didStartResearch = true
-      startResearch()
+      // Only start research if Q1 was never shown — if it was, let user continue answering
+      if (!shownQ1) {
+        didStartResearch = true
+        startResearch()
+      }
     }
   }, [prompt, startResearch, needsContext, firePresearch, selectedAgent, detectedMode])
 
@@ -851,12 +849,6 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-[10px] font-mono" style={{ color: '#94a3b8' }}>
-                      {outputData?.confidence != null && (
-                        <span style={{ color: outputData.confidence >= 70 ? '#16a34a' : '#94a3b8' }}>
-                          {outputData.confidence}% confidence
-                        </span>
-                      )}
-                      {outputData?.confidence != null && <span>·</span>}
                       <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     </div>
                   </div>

@@ -30,7 +30,6 @@ WHEN TO STOP:
 - ${stopCondition}
 - You have reached ${hardCap} answers — never exceed this
 - The remaining unknowns are minor details that wouldn't change the core recommendation
-- The query is purely factual or educational
 
 ${historyLength === 0
     ? 'This is the FIRST follow-up. Identify the single most important gap — the one that would most change your expert recommendation.'

@@ -58,19 +58,19 @@ export function TrustScoreBadge({ score }: Props) {
       >
         <p className="font-mono text-[10px] tracking-wider uppercase mb-2" style={{ color: '#94a3b8' }}>Score Breakdown</p>
         <div className="flex justify-between" style={{ color: '#64748b' }}>
-          <span>Model confidence ×0.30</span>
+          <span>Model confidence ×0.45</span>
           <span className="font-mono" style={{ color: '#1e293b' }}>{score.modelConfidence.toFixed(0)} pts</span>
         </div>
         <div className="flex justify-between" style={{ color: '#64748b' }}>
-          <span>Source quality ×0.30</span>
+          <span>Source quality ×0.28</span>
           <span className="font-mono" style={{ color: '#1e293b' }}>{(score.citationScore * 100).toFixed(0)} pts</span>
         </div>
         <div className="flex justify-between" style={{ color: '#64748b' }}>
-          <span>Coverage ×0.25</span>
+          <span>Coverage ×0.15</span>
           <span className="font-mono" style={{ color: '#1e293b' }}>{score.coverageScore} pts</span>
         </div>
         <div className="flex justify-between" style={{ color: '#64748b' }}>
-          <span>Recency proxy ×0.15</span>
+          <span>Recency proxy ×0.12</span>
           <span className="font-mono" style={{ color: '#1e293b' }}>{(score.recencyScore * 100).toFixed(0)} pts</span>
         </div>
         <div className="pt-1.5 flex justify-between font-semibold" style={{ borderTop: '1px solid #e8e2d9' }}>
