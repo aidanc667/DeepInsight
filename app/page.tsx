@@ -215,58 +215,83 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
     setQuestionIndex(0)
     setPendingAnswer('')
     setCurrentPromptLabel(prompt)
-    // Keep selectedAgent — it stays highlighted through the research run
 
     try {
-      // Agent path or pre-classified: mode already known — skip classify call
       const skipClassify = !!selectedAgent || !!detectedMode
-      const [classifyRes, planRes] = await Promise.all([
-        skipClassify
-          ? Promise.resolve(null)
-          : fetch('/api/classify', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ prompt }),
-            }),
-        fetch('/api/clarify/plan', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, mode: selectedAgent ?? detectedMode ?? undefined }),
-        }),
-      ])
+      const mode = selectedAgent ?? detectedMode ?? undefined
 
-      const classifyResult = classifyRes ? await classifyRes.json() : null
-      const plan           = await planRes.json() as QuestionPlan & { error?: boolean }
+      // Fire all three requests immediately — don't sequence them
+      const classifyPromise = skipClassify
+        ? Promise.resolve(null)
+        : fetch('/api/classify', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt }),
+          }).then(r => r.json())
+
+      const planPromise = fetch('/api/clarify/plan', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, mode }),
+      }).then(r => r.json())
+
+      // clarify/next fetches just Q1 and is faster than the full plan
+      const firstQPromise = fetch('/api/clarify/next', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, history: [], mode }),
+      }).then(r => r.json())
+
+      let shownQ1 = false
+
+      // Transition to questioning as soon as Q1 arrives — don't wait for full plan
+      firstQPromise.then(firstQ => {
+        if (shownQ1 || firstQ.done || !firstQ.question) return
+        shownQ1 = true
+        firePresearch(prompt)
+        setQuestionPlan({ expertTitle: '', questions: [firstQ.question] })
+        setAppState('questioning')
+      }).catch(() => {})
+
+      // Await classify + plan in parallel (plan may arrive after Q1 already shown)
+      const [classifyResult, plan] = await Promise.all([classifyPromise, planPromise]) as [
+        { mode?: string; confidence?: number } | null,
+        QuestionPlan & { error?: boolean }
+      ]
 
       const classifiedMode = (classifyResult?.mode ?? selectedAgent ?? detectedMode) as QueryMode | undefined
       if (classifiedMode) setDetectedMode(classifiedMode)
 
       if (plan.questions && plan.questions.length > 0) {
-        // Plan returned questions — show them and pre-fire Gemini in background
-        firePresearch(prompt)
-        setQuestionPlan(plan)
-        setAppState('questioning')
-      } else if (needsContext(prompt)) {
-        // Plan returned empty but this is clearly a personal decision query.
-        // Fall back to single-question mode via clarify/next.
-        const nextRes = await fetch('/api/clarify/next', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt, history: [], mode: classifiedMode }),
-        })
-        const next = await nextRes.json()
-        if (!next.done && next.question) {
+        if (!shownQ1) {
+          // clarify/next was slower than plan — use plan directly
+          shownQ1 = true
           firePresearch(prompt)
-          setQuestionPlan({ expertTitle: plan.expertTitle ?? '', questions: [next.question] })
+          setQuestionPlan(plan)
           setAppState('questioning')
+        } else {
+          // Q1 already visible — silently upgrade to full plan so Qs 2+ are pre-loaded
+          setQuestionPlan(prev => (prev && prev.questions.length > 1 ? prev : plan))
+        }
+      } else if (!shownQ1) {
+        // Plan says no questions — check needsContext fallback
+        if (needsContext(prompt)) {
+          // Reuse the already-in-flight firstQPromise instead of a new fetch
+          const next = await firstQPromise
+          if (!next.done && next.question) {
+            firePresearch(prompt)
+            setQuestionPlan({ expertTitle: plan.expertTitle ?? '', questions: [next.question] })
+            setAppState('questioning')
+          } else {
+            startResearch()
+          }
         } else {
           startResearch()
         }
-      } else {
-        // Purely factual — no personalisation needed
-        startResearch()
       }
+      // If plan is empty but shownQ1 is true: Q1 came from clarify/next.
+      // After answering, handleSubmitAnswer will call clarify/next for Q2 (existing flow).
     } catch {
       startResearch()
     }
-  }, [prompt, startResearch, needsContext])
+  }, [prompt, startResearch, needsContext, firePresearch, selectedAgent, detectedMode])
 
   const handleSubmitAnswer = useCallback(async () => {
     if (!pendingAnswer || !currentQuestion) return
