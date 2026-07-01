@@ -813,11 +813,9 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
                 </span>
                 <div className="h-px flex-1" style={{ background: '#e8e2d9' }} />
               </div>
-              <div className="opacity-50">
-                <OutputErrorBoundary>
-                  <StructuredOutputView data={entry.result} isLoading={false} onGoDeeper={handleGoDeeper} />
-                </OutputErrorBoundary>
-              </div>
+              <OutputErrorBoundary>
+                <StructuredOutputView data={entry.result} isLoading={false} onGoDeeper={handleGoDeeper} />
+              </OutputErrorBoundary>
             </div>
           ))}
 
