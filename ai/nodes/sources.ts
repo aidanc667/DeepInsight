@@ -116,23 +116,28 @@ function isSafeUrl(url: string): boolean {
   }
 }
 
+export interface SourceExtractionResult {
+  snippets: SourceSnippet[]
+  failedUrls: Set<string>
+}
+
 export async function extractSourceSnippets(
   citations: Array<{ url: string; domain: string }>,
   totalBudgetMs = 4500,
-): Promise<SourceSnippet[]> {
+): Promise<SourceExtractionResult> {
   const candidates = [...citations]
     .filter(c => !SKIP_FETCH_DOMAINS.has(c.domain) && isSafeUrl(c.url))
     .sort((a, b) => getSourceQuality(b.domain).credibilityScore - getSourceQuality(a.domain).credibilityScore)
     .slice(0, 4)
 
-  if (candidates.length === 0) return []
+  if (candidates.length === 0) return { snippets: [], failedUrls: new Set() }
 
   const deadline = Date.now() + totalBudgetMs
 
   const results = await Promise.allSettled(
     candidates.map(async ({ url, domain }) => {
       const remaining = deadline - Date.now()
-      if (remaining < 400) return null
+      if (remaining < 400) return { url, snippet: null }
 
       const controller = new AbortController()
       const timer = setTimeout(() => controller.abort(), Math.min(remaining - 200, 2500))
@@ -146,9 +151,9 @@ export async function extractSourceSnippets(
           },
         })
         clearTimeout(timer)
-        if (!res.ok) return null
+        if (!res.ok) return { url, snippet: null }
         const ct = res.headers.get('content-type') ?? ''
-        if (!ct.includes('html')) return null
+        if (!ct.includes('html')) return { url, snippet: null }
 
         const html = await res.text()
         const title = html.match(/<title[^>]*>([^<]{1,120})<\/title>/i)?.[1]?.trim() ?? domain
@@ -162,19 +167,29 @@ export async function extractSourceSnippets(
           .trim()
           .slice(0, 1400)
 
-        if (clean.length < 120) return null
-        return { url, domain, title, snippet: clean } as SourceSnippet
+        if (clean.length < 120) return { url, snippet: null }
+        return { url, snippet: { url, domain, title, snippet: clean } as SourceSnippet }
       } catch {
         clearTimeout(timer)
-        return null
+        return { url, snippet: null }
       }
     }),
   )
 
-  return results
-    .filter((r): r is PromiseFulfilledResult<SourceSnippet | null> => r.status === 'fulfilled')
-    .map(r => r.value)
-    .filter((s): s is SourceSnippet => s !== null)
+  const snippets: SourceSnippet[] = []
+  const failedUrls = new Set<string>()
+
+  for (const r of results) {
+    if (r.status === 'fulfilled') {
+      if (r.value.snippet) {
+        snippets.push(r.value.snippet)
+      } else {
+        failedUrls.add(r.value.url)
+      }
+    }
+  }
+
+  return { snippets, failedUrls }
 }
 
 // ─── Source Block Formatter ───────────────────────────────────────────────────
@@ -184,12 +199,13 @@ export async function extractSourceSnippets(
 export function buildAnnotatedSourceBlock(
   citations: Array<{ url: string; domain: string }>,
   snippets: SourceSnippet[] = [],
+  failedUrls: Set<string> = new Set(),
 ): string {
   if (citations.length === 0) return ''
 
   const snippetMap = new Map(snippets.map(s => [s.url, s]))
 
-  const scored = citations.slice(0, 8).map(c => {
+  const scored = citations.filter(c => !failedUrls.has(c.url)).slice(0, 8).map(c => {
     const quality  = getSourceQuality(c.domain)
     const stars    = '★'.repeat(quality.credibilityScore) + '☆'.repeat(5 - quality.credibilityScore)
     const snippet  = snippetMap.get(c.url)

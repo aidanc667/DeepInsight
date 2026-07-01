@@ -32,8 +32,9 @@ Output ONLY a JSON object:
   "sourceRegistry": [
     { "url": "https://...", "domain": "...", "credibilityTier": "high", "keyInsight": "What specific fact came from this source" }
   ],
+  // MINIMUM 5 sources. Include every URL from Gemini. credibilityTier: "high" for gov/edu/major news, "medium" for industry pubs, "low" for blogs/forums.
 
   "decisionCriteria": [], "decisionOptions": [], "winner": "", "winnerRationale": "", "tradeoff": "", "contraryPick": "", "killConditions": []
 }
 
-RULES: 2 paragraphs max for overview. 4-5 findings, each a distinct insight. Include ALL source URLs from Gemini.`
+RULES: 2 paragraphs max for overview. 4-5 findings, each a distinct insight. Include ALL source URLs from Gemini (minimum 5). Set confidence ≥70 when evidence supports it.`

@@ -567,6 +567,25 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
             </div>
           )}
 
+          {/* ── Checking state (classify + first question loading) ──── */}
+          <AnimatePresence>
+            {appState === 'checking' && (
+              <motion.div
+                key="checking"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex flex-col items-center justify-center min-h-full gap-4"
+              >
+                <Loader2 className="h-6 w-6 animate-spin" style={{ color: '#6b8cae' }} />
+                <p className="text-[11px] font-mono tracking-[0.18em]" style={{ color: '#94a3b8' }}>
+                  ANALYZING QUERY…
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* ── Questioning state ───────────────────────────────────── */}
           <AnimatePresence>
             {appState === 'questioning' && (

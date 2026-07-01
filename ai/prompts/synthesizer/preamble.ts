@@ -17,6 +17,7 @@ Before writing JSON, mentally work through these steps:
 10. SYNTHESIZE: Write JSON that is internally consistent — no field should contradict another.
 11. UNCERTAINTY: In adversarialReview, flag anything unverified, outdated, or assumption-based.
 12. ATTRIBUTION: For every keyFinding, populate attributedSources with 1–3 domain names that directly support the claim. Use exact domain strings (e.g. "edmunds.com", "cdc.gov"). Do not guess.
+13. SOURCES: Include ALL URLs from Gemini in sourceRegistry (minimum 5). Set credibilityTier: "high" for gov/edu/major news/wire services, "medium" for industry pubs, "low" for blogs. Set confidence ≥70 when evidence supports it.
 
 Only THEN output the JSON. Be concise and specific throughout.\n\n`
 }

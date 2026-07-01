@@ -12,7 +12,7 @@ import { extractDomain, getSourceQuality } from '@/ai/nodes/sources'
 
 // Re-export source utilities so pipeline imports stay in one place
 export { getSourceQuality, extractSourceSnippets, buildAnnotatedSourceBlock } from '@/ai/nodes/sources'
-export type { SourceSnippet, SourceQuality } from '@/ai/nodes/sources'
+export type { SourceSnippet, SourceQuality, SourceExtractionResult } from '@/ai/nodes/sources'
 
 // ─── Node: Plan research ──────────────────────────────────────────────────────
 

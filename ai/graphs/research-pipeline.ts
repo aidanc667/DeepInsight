@@ -22,6 +22,7 @@ import {
   planResearch,
   buildAnnotatedSourceBlock,
   extractSourceSnippets,
+  type SourceExtractionResult,
 } from '@/ai/nodes/models'
 import { enrichResearchContext } from '@/ai/nodes/context-enricher'
 import { QueryClassifierSchema, QUERY_MODES, getSchemaForMode } from '@/ai/schemas'
@@ -146,11 +147,13 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
     ? prefetchedGeminiResponse.citations.map((c: { url: string; domain: string }) => ({ url: c.url, domain: c.domain }))
     : null
 
+  const emptyExtraction: SourceExtractionResult = { snippets: [], failedUrls: new Set<string>() }
+
   // Start source extraction early only when we have citations from presearch
   const earlySnippetsPromise = (!agentSelected && prefetchedCitationRefs && prefetchedCitationRefs.length > 0)
     ? Promise.race([
-        extractSourceSnippets(prefetchedCitationRefs).catch(() => [] as Awaited<ReturnType<typeof extractSourceSnippets>>),
-        new Promise<[]>(resolve => setTimeout(() => resolve([]), 1000)),
+        extractSourceSnippets(prefetchedCitationRefs).catch(() => emptyExtraction),
+        new Promise<typeof emptyExtraction>(resolve => setTimeout(() => resolve(emptyExtraction), 1000)),
       ])
     : null
 
@@ -192,13 +195,13 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
   // ── Phase 2.5: Source extraction ──────────────────────────────────────────
   // If early extraction already ran in parallel with Phase 2, reuse those results.
   // Otherwise fall back to the standard post-Phase-2 extraction with a 1s cap.
-  let sourceSnippets: Awaited<ReturnType<typeof extractSourceSnippets>> = []
+  let sourceExtraction = emptyExtraction
   if (!agentSelected && geminiText) {
     if (earlySnippetsPromise) {
-      sourceSnippets = await earlySnippetsPromise
+      sourceExtraction = await earlySnippetsPromise
     } else {
-      const snippetsPromise = extractSourceSnippets(citationRefs).catch(() => [] as Awaited<ReturnType<typeof extractSourceSnippets>>)
-      sourceSnippets = await Promise.race([snippetsPromise, new Promise<[]>(resolve => setTimeout(() => resolve([]), 1000))])
+      const snippetsPromise = extractSourceSnippets(citationRefs).catch(() => emptyExtraction)
+      sourceExtraction = await Promise.race([snippetsPromise, new Promise<typeof emptyExtraction>(resolve => setTimeout(() => resolve(emptyExtraction), 1000))])
     }
   }
 
@@ -216,7 +219,8 @@ export async function runResearchPipeline(input: ResearchPipelineInput): Promise
   // Deep research → Sonnet, full source block, mode-tuned token cap.
   const annotatedSources = buildAnnotatedSourceBlock(
     agentSelected ? citationRefs.slice(0, 4) : citationRefs,
-    sourceSnippets,
+    sourceExtraction.snippets,
+    sourceExtraction.failedUrls,
   )
 
   const synthesisModel = agentSelected
