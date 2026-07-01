@@ -15,11 +15,6 @@ export function ExecutiveAnswer({ data, delay }: { data: StructuredOutput['execu
             <BookOpen className="h-3 w-3 text-blue-500" />
           </div>
           <Label>Executive Answer</Label>
-          {data.confidence > 0 && (
-            <span className="ml-auto font-mono text-[10px] text-slate-500 tracking-wider">
-              {data.confidence}<span className="text-slate-400">% conf</span>
-            </span>
-          )}
         </div>
         <p className="report-body">{data.brief}</p>
       </div>
