@@ -112,6 +112,9 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
     }).catch(() => {})
   }, [appState])
 
+  // True when the current research run is a continue-chat turn (should not save to history)
+  const isContinuationRef = useRef(false)
+
   // Holds the in-flight presearch promise so startResearch can await it
   const presearchRef = useRef<Promise<{ rawText: string; citations: unknown[] } | null> | null>(null)
   // Stores the AI-selected domain from classify so clarify/next calls can use it
@@ -160,7 +163,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
       // Compute trust score regardless — use safe defaults for any missing fields
       setTrustScore(computeTrustScore(result ?? undefined))
 
-      if (result) {
+      if (result && !isContinuationRef.current) {
         const sourcesCount = result.sourceRegistry?.filter(s => s?.url)?.length ?? 0
         const iterCount = sourcesCount > 8 ? 2 : 1
         void saveSession({
@@ -177,6 +180,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
           localStorage.setItem('di:report:' + prompt, JSON.stringify(result))
         } catch { /* storage full — ignore */ }
       }
+      isContinuationRef.current = false
     },
     onError: (err) => {
       setAppState('idle')
@@ -290,21 +294,18 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
 
       if (plan.questions && plan.questions.length > 0) {
         if (!shownQ1) {
-          // clarify/next was slower than plan — use plan directly
+          // clarify/next was slower than plan — use only Q1 from plan
+          // (Q2+ always come from clarify/next with full history to avoid overlap)
           shownQ1 = true
           firstShownQuestion = plan.questions[0]
           firePresearch(prompt)
-          setQuestionPlan(plan)
+          setQuestionPlan({ expertTitle: plan.expertTitle ?? '', questions: [plan.questions[0]] })
           setAppState('questioning')
         } else {
-          // Q1 already visible — keep the exact question we showed, append Q2+ from plan.
-          // Use firstShownQuestion (not prev state) to avoid React batching races where
-          // prev might be stale null when the updater runs.
+          // Q1 already visible — update expertTitle only, keep single question
+          // Q2+ will come from clarify/next which sees Q1's answer
           const q1 = firstShownQuestion ?? plan.questions[0]
-          setQuestionPlan({
-            expertTitle: plan.expertTitle ?? '',
-            questions: [q1, ...plan.questions.slice(1)],
-          })
+          setQuestionPlan({ expertTitle: plan.expertTitle ?? '', questions: [q1] })
         }
       } else if (!shownQ1) {
         // Plan says no questions — always attempt Q1 from clarify/next before researching
@@ -338,14 +339,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
     setQuestionHistory(newHistory)
     setPendingAnswer('')
 
-    const nextIndex      = questionIndex + 1
-    const hasMorePlanned = questionPlan && nextIndex < questionPlan.questions.length
-
-    if (hasMorePlanned) {
-      // More planned questions — advance instantly, no network call
-      setQuestionIndex(nextIndex)
-      return
-    }
+    const nextIndex = questionIndex + 1
 
     const modeCap = getModeCap(detectedMode ?? 'research')
     if (newHistory.length >= modeCap) {
@@ -395,6 +389,9 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
     const newPrompt = followUpText.trim()
     if (!newPrompt) return
 
+    // Capture Q&A history BEFORE clearing it
+    const capturedQHistory = questionHistory.slice()
+
     // Snapshot the current result into history before submitting
     if (object) {
       setChatHistory(prev => [...prev, {
@@ -403,14 +400,26 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
       }])
     }
 
-    // Build context from the previous research so the next run builds on it
+    // Build rich context: all prior turns + Q&A answers + current result
+    const allPriorTurns = chatHistory.map((entry, i) =>
+      `[TURN ${i + 1}] QUERY: "${entry.prompt}"\nSUMMARY: ${entry.result?.executiveBrief ?? ''}${
+        entry.result?.keyFindings?.length
+          ? `\nKEY FINDINGS:\n${entry.result.keyFindings.slice(0, 3).map(f => `• ${f?.finding ?? ''}`).filter(f => f !== '• ').join('\n')}`
+          : ''
+      }`
+    )
+
     const prevParts = [
-      `PREVIOUS QUERY: "${currentPromptLabel || prompt}"`,
+      allPriorTurns.length > 0 ? `CONVERSATION HISTORY:\n${allPriorTurns.join('\n\n')}` : '',
+      `CURRENT QUERY: "${currentPromptLabel || prompt}"`,
+      capturedQHistory.length > 0
+        ? `CLARIFICATIONS PROVIDED:\n${capturedQHistory.map(e => `Q: ${e.question.question}\nA: ${e.answer}`).join('\n')}`
+        : '',
       object?.executiveBrief
-        ? `PREVIOUS SUMMARY: ${object.executiveBrief}`
+        ? `CURRENT SUMMARY: ${object.executiveBrief}`
         : '',
       object?.keyFindings?.length
-        ? `KEY FINDINGS FROM PREVIOUS RESEARCH:\n${
+        ? `KEY FINDINGS:\n${
             object.keyFindings
               .slice(0, 4)
               .map(f => `• ${f?.finding ?? ''}`)
@@ -420,6 +429,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
         : '',
     ].filter(Boolean).join('\n\n')
 
+    isContinuationRef.current = true
     setCurrentPromptLabel(newPrompt)
     setPrompt(newPrompt)
     setFollowUpText('')
@@ -793,16 +803,6 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
             )}
           </AnimatePresence>
 
-          {/* ── Research Loading ─────────────────────────────────────── */}
-          {appState === 'researching' && !outputData?.executiveBrief && (
-            <div className="px-8 py-8 max-w-2xl mx-auto w-full">
-              <ResearchLoadingScreen
-                prompt={prompt}
-                isActive={true}
-              />
-            </div>
-          )}
-
           {/* ── Chat history (previous turns) ────────────────────────── */}
           {chatHistory.map((entry, i) => (
             <div key={i} className="px-8 py-6 space-y-4">
@@ -818,6 +818,16 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
               </OutputErrorBoundary>
             </div>
           ))}
+
+          {/* ── Research Loading ─────────────────────────────────────── */}
+          {appState === 'researching' && !outputData?.executiveBrief && (
+            <div className="px-8 py-8 max-w-2xl mx-auto w-full">
+              <ResearchLoadingScreen
+                prompt={prompt}
+                isActive={true}
+              />
+            </div>
+          )}
 
           {/* ── Results ─────────────────────────────────────────────── */}
           <AnimatePresence>

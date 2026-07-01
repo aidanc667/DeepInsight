@@ -71,7 +71,7 @@ export interface ResearchPipelineInput {
 
 export async function runResearchPipeline(input: ResearchPipelineInput): Promise<Response> {
   const { prompt, forceProceed, mode: clientMode, priorSessions, prefetchedGemini } = input
-  const clarificationContext = forceProceed ? undefined : input.clarificationContext
+  const clarificationContext = input.clarificationContext  // always carry context, even when skipping questions
 
 
   // ── Pre-Phase 1: Start Gemini on raw query immediately ───────────────────
