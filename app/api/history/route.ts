@@ -1,5 +1,5 @@
 import { auth } from '@clerk/nextjs/server'
-import { dbSaveSession, dbLoadSessions, dbClearSessions } from '@/lib/db/sessions'
+import { dbSaveSession, dbLoadSessions, dbDeleteSession, dbClearSessions } from '@/lib/db/sessions'
 import type { ResearchSession } from '@/ai/services/research-memory'
 
 export const runtime = 'nodejs'
@@ -32,12 +32,17 @@ export async function POST(req: Request) {
   }
 }
 
-/** DELETE /api/history — clear all sessions for the signed-in user */
-export async function DELETE() {
+/** DELETE /api/history?id=xxx — delete one session; omit id to clear all */
+export async function DELETE(req: Request) {
   const { userId } = await auth()
   if (!userId) return Response.json({ ok: false }, { status: 401 })
   try {
-    await dbClearSessions(userId)
+    const id = new URL(req.url).searchParams.get('id')
+    if (id) {
+      await dbDeleteSession(id, userId)
+    } else {
+      await dbClearSessions(userId)
+    }
     return Response.json({ ok: true })
   } catch (err) {
     console.error('[history DELETE]', err)

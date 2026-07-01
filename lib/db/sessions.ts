@@ -55,6 +55,11 @@ export async function dbLoadSessions(userId: string, limit = 20): Promise<Resear
   }))
 }
 
+export async function dbDeleteSession(id: string, userId: string): Promise<void> {
+  const sql = getSql()
+  await sql`DELETE FROM research_sessions WHERE id = ${id} AND user_id = ${userId}`
+}
+
 export async function dbClearSessions(userId: string): Promise<void> {
   const sql = getSql()
   await sql`DELETE FROM research_sessions WHERE user_id = ${userId}`

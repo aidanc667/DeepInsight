@@ -13,12 +13,11 @@ import { TrustScoreBadge } from '@/components/research/TrustScoreBadge'
 import { ResearchLoadingScreen } from '@/components/research/ResearchLoadingScreen'
 import { ClarificationCard } from '@/components/research/ClarificationCard'
 import { StructuredOutputView } from '@/components/research/StructuredOutputView'
-import { ResearchHistory } from '@/components/research/ResearchHistory'
 import { Sidebar } from '@/components/research/Sidebar'
 import { SourcesRail } from '@/components/research/SourcesRail'
 import { EliteResearchOutputSchema } from '@/ai/schemas'
 import { getModeCap } from '@/ai/config/modes'
-import { saveSession, loadSessions } from '@/lib/research-memory'
+import { saveSession, loadSessions, deleteSession } from '@/lib/research-memory'
 import { computeTrustScore } from '@/lib/trust-score'
 import type { ClarificationQuestion, TrustScore, QueryMode, EliteResearchOutput } from '@/ai/schemas'
 import { Component, type ReactNode } from 'react'
@@ -432,6 +431,10 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
             setDetectedMode(session.mode)
           }
         }}
+        onDeleteSession={(id) => {
+          setRecentSessions(prev => prev.filter(s => s.id !== id))
+          void deleteSession(id)
+        }}
       />
 
       {/* ── Main area ─────────────────────────────────────────────── */}
@@ -526,9 +529,6 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
                 </p>
               </div>
 
-              <div className="w-full max-w-xl mt-12">
-                <ResearchHistory onRerun={handleRerun} />
-              </div>
             </div>
           )}
 

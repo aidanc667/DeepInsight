@@ -32,6 +32,15 @@ export async function loadSessions(): Promise<ResearchSession[]> {
   }
 }
 
+/** Delete a single session by id via API route. */
+export async function deleteSession(id: string): Promise<void> {
+  try {
+    await fetch(`/api/history?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+  } catch {
+    //
+  }
+}
+
 /** Clear all sessions via API route. */
 export async function clearHistory(): Promise<void> {
   try {

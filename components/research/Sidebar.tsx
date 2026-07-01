@@ -2,7 +2,7 @@
 
 import { useClerk } from '@clerk/nextjs'
 import { useUser } from '@clerk/nextjs'
-import { LogOut, Plus, Brain } from 'lucide-react'
+import { LogOut, Plus, Brain, X } from 'lucide-react'
 import type { QueryMode } from '@/ai/schemas'
 
 const MODES: { id: QueryMode; label: string; code: string }[] = [
@@ -29,9 +29,10 @@ interface SidebarProps {
   onNewResearch: () => void
   recentSessions: RecentSession[]
   onRerun: (session: RecentSession) => void
+  onDeleteSession: (id: string) => void
 }
 
-export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSessions, onRerun }: SidebarProps) {
+export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSessions, onRerun, onDeleteSession }: SidebarProps) {
   const { signOut } = useClerk()
   const { user } = useUser()
 
@@ -132,24 +133,38 @@ export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSession
           </p>
           <div className="space-y-0.5">
             {recentSessions.slice(0, 10).map(session => (
-              <button
+              <div
                 key={session.id}
-                onClick={() => onRerun(session)}
-                className="w-full px-2.5 py-2 rounded-md text-left transition-colors"
+                className="group flex items-start gap-1 rounded-md transition-colors"
                 style={{ background: 'transparent' }}
-                aria-label={session.prompt}
                 onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
-                <p className="text-[11px] truncate leading-tight" style={{ color: '#7a9ab8' }}>
-                  {session.prompt}
-                </p>
-                {session.mode && (
-                  <p className="text-[9px] font-mono mt-0.5" style={{ color: '#4a6a8a' }}>
-                    {MODES.find(m => m.id === session.mode)?.code ?? session.mode.toUpperCase()}
+                <button
+                  onClick={() => onRerun(session)}
+                  className="flex-1 min-w-0 px-2.5 py-2 text-left"
+                  aria-label={session.prompt}
+                >
+                  <p className="text-[11px] truncate leading-tight" style={{ color: '#7a9ab8' }}>
+                    {session.prompt}
                   </p>
-                )}
-              </button>
+                  {session.mode && (
+                    <p className="text-[9px] font-mono mt-0.5" style={{ color: '#4a6a8a' }}>
+                      {MODES.find(m => m.id === session.mode)?.code ?? session.mode.toUpperCase()}
+                    </p>
+                  )}
+                </button>
+                <button
+                  onClick={e => { e.stopPropagation(); onDeleteSession(session.id) }}
+                  className="opacity-0 group-hover:opacity-100 shrink-0 p-1.5 mt-1 mr-1 rounded transition-opacity"
+                  style={{ color: '#4a6a8a' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#94a3b8')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '#4a6a8a')}
+                  aria-label="Delete session"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
             ))}
           </div>
         </div>
