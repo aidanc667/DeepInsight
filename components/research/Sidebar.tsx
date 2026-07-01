@@ -139,9 +139,6 @@ export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSession
                   style={{ background: isActive ? '#6b8cae' : '#2d3f54' }}
                 />
                 <span className="text-[11px] flex-1 leading-none">{mode.label}</span>
-                <span className="text-[8px] font-mono shrink-0" style={{ color: '#4a6a8a' }}>
-                  {mode.code}
-                </span>
               </button>
             )
           })}

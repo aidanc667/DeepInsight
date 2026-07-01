@@ -81,6 +81,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
   const [appState, setAppState] = useState<AppState>('idle')
   const [detectedMode, setDetectedMode] = useState<QueryMode | null>(null)
   const [trustScore, setTrustScore] = useState<TrustScore | null>(null)
+  const [restoredOutput, setRestoredOutput] = useState<Partial<EliteResearchOutput> | null>(null)
 
   const [questionHistory, setQuestionHistory] = useState<QuestionEntry[]>([])
   const [questionPlan, setQuestionPlan]       = useState<QuestionPlan | null>(null)
@@ -170,6 +171,10 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
           sourceCount:    sourcesCount,
           iterationCount: iterCount,
         })
+        // Cache full output in localStorage so clicking history restores the report instantly
+        try {
+          localStorage.setItem('di:report:' + prompt, JSON.stringify(result))
+        } catch { /* storage full — ignore */ }
       }
     },
     onError: (err) => {
@@ -220,6 +225,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
   const handleAnalyze = useCallback(async () => {
     if (!prompt.trim()) return
     setResearchError(null)
+    setRestoredOutput(null)
     setAppState('checking')
     setQuestionHistory([])
     setQuestionPlan(null)
@@ -508,8 +514,21 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
           setPrompt(session.prompt)
           if (session.mode) {
             setSelectedAgent(session.mode)
-            setDetectedMode(session.mode)
+            setDetectedMode(session.mode as QueryMode)
           }
+          // Restore cached report if available — skip re-running research
+          try {
+            const cached = localStorage.getItem('di:report:' + session.prompt)
+            if (cached) {
+              const parsed = JSON.parse(cached) as Partial<EliteResearchOutput>
+              setRestoredOutput(parsed)
+              setTrustScore(computeTrustScore(parsed))
+              setAppState('done')
+              setSidebarOpen(false)
+              return
+            }
+          } catch { /* ignore */ }
+          setSidebarOpen(false)
         }}
         onDeleteSession={(id) => {
           setRecentSessions(prev => prev.filter(s => s.id !== id))
@@ -754,7 +773,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
 
           {/* ── Results ─────────────────────────────────────────────── */}
           <AnimatePresence>
-            {(isResearching || appState === 'done') && object && (
+            {(isResearching || appState === 'done') && (object || restoredOutput) && (
               <motion.div
                 key="results"
                 initial={{ opacity: 0, y: 16 }}
@@ -771,7 +790,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
                 )}
                 <OutputErrorBoundary>
                   <StructuredOutputView
-                    data={object as Partial<EliteResearchOutput>}
+                    data={(restoredOutput ?? object) as Partial<EliteResearchOutput>}
                     isLoading={isLoading}
                     onGoDeeper={handleGoDeeper}
                   />
@@ -864,7 +883,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
       {/* ── Sources Rail (done state only, desktop only) ─────────── */}
       <div className="hidden md:block">
       <AnimatePresence>
-        {appState === 'done' && object?.sourceRegistry && object.sourceRegistry.length > 0 && (
+        {appState === 'done' && (restoredOutput ?? object)?.sourceRegistry && ((restoredOutput ?? object)!.sourceRegistry!.length > 0) && (
           <motion.div
             key="sources-rail"
             initial={{ opacity: 0, x: 20 }}
@@ -872,7 +891,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           >
-            <SourcesRail sources={object.sourceRegistry as NonNullable<EliteResearchOutput['sourceRegistry']>} />
+            <SourcesRail sources={(restoredOutput ?? object)!.sourceRegistry as NonNullable<EliteResearchOutput['sourceRegistry']>} />
           </motion.div>
         )}
       </AnimatePresence>
