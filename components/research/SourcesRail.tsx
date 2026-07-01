@@ -54,7 +54,6 @@ export function SourcesRail({ sources }: SourcesRailProps) {
     })
 
   const highCount = sorted.filter(s => (s.credibilityTier ?? 'low').toLowerCase() === 'high').length
-  const mediumCount = sorted.filter(s => (s.credibilityTier ?? 'low').toLowerCase() === 'medium').length
 
   return (
     <aside

@@ -82,7 +82,6 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
   const [appState, setAppState] = useState<AppState>('idle')
   const [detectedMode, setDetectedMode] = useState<QueryMode | null>(null)
   const [trustScore, setTrustScore] = useState<TrustScore | null>(null)
-  const [deepResearch, setDeepResearch] = useState(false)
 
   const [questionHistory, setQuestionHistory] = useState<QuestionEntry[]>([])
   const [questionPlan, setQuestionPlan]       = useState<QuestionPlan | null>(null)
@@ -159,7 +158,6 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
       if (result) {
         const sourcesCount = result.sourceRegistry?.filter(s => s?.url)?.length ?? 0
         const iterCount = sourcesCount > 8 ? 2 : 1
-        setDeepResearch(iterCount > 1)
         void saveSession({
           timestamp:      Date.now(),
           query:          prompt,
@@ -175,8 +173,6 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
   })
 
   const mode       = (object?.queryMode ?? detectedMode ?? 'research') as QueryMode
-  const modeConfig = MODE_CONFIG[mode] ?? MODE_CONFIG.research
-
   // Fire Gemini presearch in the background — called as soon as clarification questions appear.
   // Result is stored in presearchRef and awaited by startResearch.
   const firePresearch = useCallback((q: string) => {
@@ -191,7 +187,6 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
 
   const startResearch = useCallback(async (context?: string) => {
     setAppState('researching')
-    setDeepResearch(false)
     // Run presearch wait + session load in parallel — no reason to sequence them
     const [prefetchedGemini, prior] = await Promise.all([
       presearchRef.current ?? Promise.resolve(null),
@@ -372,7 +367,6 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
     setQuestionIndex(0)
     setPendingAnswer('')
     setTrustScore(null)
-    setDeepResearch(false)
     setAppState('researching')
     try {
       const prior = await loadSessions()
@@ -402,7 +396,6 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
     setPendingAnswer('')
     setTrustScore(null)
     setDetectedMode(null)
-    setDeepResearch(false)
     setAppState('researching')
     loadSessions().then(prior => {
       submit({ prompt: question, forceProceed: true, mode: undefined, priorSessions: prior.slice(0, 10) })

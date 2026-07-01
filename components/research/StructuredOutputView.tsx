@@ -23,7 +23,7 @@ interface Props {
   onGoDeeper?: (question: string) => void
 }
 
-export function StructuredOutputView({ data, isLoading: _isLoading, onGoDeeper }: Props) {
+export function StructuredOutputView({ data, isLoading: _, onGoDeeper }: Props) {
   const s = toStructuredOutput(data)
   const mode = s.executiveAnswer.queryMode
 

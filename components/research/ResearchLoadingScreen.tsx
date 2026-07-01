@@ -1,10 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Brain, Globe, Layers, Sparkles, FileSearch, Check, Zap } from 'lucide-react'
 import { getPersonaUI } from '@/ai/prompts/expert-personas-ui'
-import type { PersonaUI } from '@/ai/prompts/expert-personas-ui'
 
 interface Props {
   prompt: string
@@ -26,23 +25,17 @@ const TOTAL_MS   = 19000
 export function ResearchLoadingScreen({ prompt, isActive }: Props) {
   const [elapsed, setElapsed]   = useState(0)
   const [msgIdx, setMsgIdx]     = useState(0)
-  const startRef                = useRef<number>(Date.now())
+  const startRef                = useRef<number>(0)
   const tickRef                 = useRef<ReturnType<typeof setInterval> | null>(null)
   const msgRef                  = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Derive persona only when prompt changes (stable reference)
-  const personaRef = useRef<PersonaUI>(getPersonaUI(prompt))
-  useEffect(() => {
-    personaRef.current = getPersonaUI(prompt)
-  }, [prompt])
+  const persona = useMemo(() => getPersonaUI(prompt), [prompt])
 
   // Reset + start ticking when isActive flips to true
   useEffect(() => {
     if (!isActive) {
       if (tickRef.current) clearInterval(tickRef.current)
       if (msgRef.current)  clearInterval(msgRef.current)
-      setElapsed(0)
-      setMsgIdx(0)
       return
     }
 
@@ -55,7 +48,7 @@ export function ResearchLoadingScreen({ prompt, isActive }: Props) {
     }, 80)
 
     msgRef.current = setInterval(() => {
-      setMsgIdx(i => (i + 1) % personaRef.current.loadingMessages.length)
+      setMsgIdx(i => (i + 1) % persona.loadingMessages.length)
     }, 2800)
 
     return () => {
@@ -66,7 +59,6 @@ export function ResearchLoadingScreen({ prompt, isActive }: Props) {
 
   const progress    = Math.min(elapsed / TOTAL_MS, 0.97)
   const activeStage = Math.max(0, STAGE_ENDS.findIndex(end => elapsed < end))
-  const persona     = personaRef.current
   const currentMsg  = persona.loadingMessages[msgIdx] ?? persona.loadingMessages[0]
 
   return (
