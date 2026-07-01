@@ -45,15 +45,16 @@ const MODE_CONFIG: Record<QueryMode, {
   example: string
   tag: string
   accent: string
+  tagline: string
 }> = {
-  decision:     { label: 'Strategy',     icon: Target,        tag: 'STRATEGY',     accent: 'text-violet-400', example: 'What car should I buy for a family of 4?' },
-  research:     { label: 'Research',     icon: BookOpen,      tag: 'RESEARCH',     accent: 'text-blue-400',   example: 'How does mRNA vaccine technology work?' },
-  intelligence: { label: 'Analysis',     icon: Radio,         tag: 'ANALYSIS',     accent: 'text-cyan-400',   example: "What's the current state of quantum computing in 2026?" },
-  perspectives: { label: 'Perspectives', icon: MessageSquare, tag: 'PERSPECTIVES', accent: 'text-amber-400',  example: 'Strongest arguments for and against remote work?' },
-  competitive:  { label: 'Challenge',    icon: BarChart3,     tag: 'CHALLENGE',    accent: 'text-rose-400',   example: 'What are the biggest risks in building a consumer AI startup right now?' },
-  explainer:    { label: 'Understanding',icon: Link2,         tag: 'UNDERSTANDING',accent: 'text-teal-400',   example: 'How does raising interest rates affect housing?' },
-  action:       { label: 'Execution',    icon: ArrowRight,    tag: 'EXECUTION',    accent: 'text-orange-400', example: 'How do I launch a SaaS product from scratch?' },
-  forecast:     { label: 'Forecast',     icon: Zap,           tag: 'FORECAST',     accent: 'text-indigo-400', example: 'Where is AI heading in the next 2 years?' },
+  decision:     { label: 'Strategy',     icon: Target,        tag: 'STRATEGY',     accent: 'text-violet-400', tagline: 'Make the right call.',        example: 'What car should I buy for a family of 4?' },
+  research:     { label: 'Research',     icon: BookOpen,      tag: 'RESEARCH',     accent: 'text-blue-400',   tagline: 'Find what matters.',           example: 'How does mRNA vaccine technology work?' },
+  intelligence: { label: 'Analysis',     icon: Radio,         tag: 'ANALYSIS',     accent: 'text-cyan-400',   tagline: 'Get the full picture.',        example: "What's the current state of quantum computing in 2026?" },
+  perspectives: { label: 'Perspectives', icon: MessageSquare, tag: 'PERSPECTIVES', accent: 'text-amber-400',  tagline: 'See every side.',              example: 'Strongest arguments for and against remote work?' },
+  competitive:  { label: 'Challenge',    icon: BarChart3,     tag: 'CHALLENGE',    accent: 'text-rose-400',   tagline: 'Stress-test your thinking.',   example: 'What are the biggest risks in building a consumer AI startup right now?' },
+  explainer:    { label: 'Understanding',icon: Link2,         tag: 'UNDERSTANDING',accent: 'text-teal-400',   tagline: 'Make it click.',               example: 'How does raising interest rates affect housing?' },
+  action:       { label: 'Execution',    icon: ArrowRight,    tag: 'EXECUTION',    accent: 'text-orange-400', tagline: 'Turn ideas into action.',      example: 'How do I launch a SaaS product from scratch?' },
+  forecast:     { label: 'Forecast',     icon: Zap,           tag: 'FORECAST',     accent: 'text-indigo-400', tagline: 'See around the corner.',       example: 'Where is AI heading in the next 2 years?' },
 }
 
 // ─── Outer shell — holds the reset key ────────────────────────────────────────
@@ -663,8 +664,8 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
                             {cfg.label}
                           </span>
                         </div>
-                        <p className="text-[9.5px] leading-snug line-clamp-2" style={{ color: '#94a3b8' }}>
-                          {cfg.example}
+                        <p className="text-[10px] leading-snug font-medium" style={{ color: isSelected ? '#1e3a5f' : '#64748b' }}>
+                          {cfg.tagline}
                         </p>
                       </button>
                     )
