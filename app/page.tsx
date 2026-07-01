@@ -487,7 +487,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
                   <textarea
                     value={prompt}
                     onChange={e => setPrompt(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleAnalyze() }}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAnalyze() } }}
                     placeholder="Ask anything — a decision to make, a topic to research, a trend to understand…"
                     className="w-full min-h-[110px] p-4 resize-none focus:outline-none text-[15px] leading-relaxed placeholder:text-[#94a3b8]"
                     style={{ fontFamily: 'Georgia, serif', color: '#1e293b', background: 'transparent', caretColor: '#1e3a5f' }}
@@ -697,7 +697,7 @@ function ResearchApp({ onNewChat }: { onNewChat: () => void }) {
                           autoFocus
                           value={followUpText}
                           onChange={e => setFollowUpText(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleContinueResearch() }}
+                          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleContinueResearch() } }}
                           placeholder="Ask a follow-up question about this topic…"
                           rows={3}
                           className="w-full rounded-lg p-3 text-[14px] leading-relaxed placeholder:text-[#94a3b8] resize-none focus:outline-none"

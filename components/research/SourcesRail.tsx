@@ -57,7 +57,7 @@ export function SourcesRail({ sources }: SourcesRailProps) {
 
   return (
     <aside
-      className="flex flex-col shrink-0 overflow-hidden"
+      className="flex flex-col shrink-0 overflow-y-auto"
       style={{
         width: '200px',
         background: '#f0ece4',

@@ -2,7 +2,7 @@
 
 import { useClerk } from '@clerk/nextjs'
 import { useUser } from '@clerk/nextjs'
-import { LogOut, Plus, FlaskConical } from 'lucide-react'
+import { LogOut, Plus, Brain } from 'lucide-react'
 import type { QueryMode } from '@/ai/schemas'
 
 const MODES: { id: QueryMode; label: string; code: string }[] = [
@@ -45,23 +45,21 @@ export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSession
       }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-4 pt-5 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <button
+        onClick={onNewResearch}
+        className="flex items-center gap-2.5 px-4 pt-5 pb-4 w-full text-left transition-opacity hover:opacity-80"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+      >
         <div
           className="flex items-center justify-center h-[22px] w-[22px] rounded-[5px] shrink-0"
           style={{ background: '#1e3a5f' }}
         >
-          <FlaskConical className="h-3 w-3" style={{ color: '#7aaccc' }} />
+          <Brain className="h-3 w-3" style={{ color: '#7aaccc' }} />
         </div>
         <span className="text-[13px] font-bold tracking-[0.06em]" style={{ color: '#e2e8f0' }}>
           DeepInsight
         </span>
-        <span
-          className="ml-auto text-[8px] font-mono tracking-[0.08em] px-1.5 py-0.5 rounded"
-          style={{ background: 'rgba(255,255,255,0.06)', color: '#4a6a8a' }}
-        >
-          BETA
-        </span>
-      </div>
+      </button>
 
       {/* New Research */}
       <div className="px-3 pt-3">
@@ -77,7 +75,7 @@ export function Sidebar({ activeMode, onModeSelect, onNewResearch, recentSession
           onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
         >
           <Plus className="h-3.5 w-3.5" />
-          New Research
+          New Research Query
         </button>
       </div>
 

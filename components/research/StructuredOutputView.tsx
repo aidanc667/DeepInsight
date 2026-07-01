@@ -77,8 +77,7 @@ export function StructuredOutputView({ data, isLoading: _, onGoDeeper }: Props) 
         <GoDeeperCard data={s.goDeeper} delay={0.09} onGoDeeper={onGoDeeper} />
       )}
 
-      {/* Universal: sources */}
-      <Sources sources={s.sources} delay={0.1} />
+      {/* Sources are shown in the right-hand rail; omit from main report body */}
     </div>
   )
 }
