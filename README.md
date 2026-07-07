@@ -215,3 +215,5 @@ proxy.ts                        # Clerk + Upstash rate limiting middleware
 - Upstash rate limiting enforced at the middleware layer (10 requests / 10 seconds per user) on all AI routes
 - Security headers set globally: `Content-Security-Policy`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Strict-Transport-Security`, `Permissions-Policy`
 - Paywalled and social domains are skipped automatically during source extraction
+
+<!-- test PR to verify the Archie v1 composite action -->
